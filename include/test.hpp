@@ -109,9 +109,11 @@ double ComputeError(double *phi, double *phidir, int Nf, doft *dof, int m) {
 
 template <typename T>
 double testInterplationErr(T* Atree, int Ns, int Nf) {
+    cout << "hrere" << endl;
+
     Atree->buildFMMTree();
     int  i, j, k=0;
-    
+    cout << "hrere" << endl;
     vector3 source[Ns];    // Position array for the source points
     vector3 field[Nf];     // Position array for the field points
     double q[Ns*Atree->dof->s];  // Source array
@@ -140,10 +142,15 @@ double testInterplationErr(T* Atree, int Ns, int Nf) {
     
     double *stress      =  new double[Nf*Atree->dof->f];// Field array (BBFMM calculation)
     double *stress_dir  =  new double[Nf*Atree->dof->f];// Field array (direct O(N^2) calculation)
-  
+    cout << "hrere" << endl;
+
     
     H2_3D_Compute<T> compute(Atree, field, source, Ns, Nf, q,1, stress);
+    cout << "hrere" << endl;
+
     DirectCalc3D(Atree, field, Nf, source, q, 1, Ns, Atree->dof,0 ,0, stress_dir);
+    cout << "hrere" << endl;
+
     double err = ComputeError(stress,stress_dir,Nf,Atree->dof,1);
     delete []stress;
     delete []stress_dir;

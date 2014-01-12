@@ -61,7 +61,7 @@ typedef struct _nodeT {
 	struct _nodeT *interaction[189];
 	vector3 center, cshiftneigh[27], cshiftinter[189];
 	double length;
-	double *fieldval, *sourceval, *proxysval; 
+	double *fieldval, *sourceval, *proxysval,*sourcefre;
 	int *fieldlist, *sourcelist;
 	int Nf, Ns, ineigh, iinter;
 } nodeT;

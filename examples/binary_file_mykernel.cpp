@@ -15,9 +15,9 @@
 
 class myKernel: public H2_3D_Tree {
 public:
-    myKernel(doft* dof, double L, int level, int n, double epsilon):H2_3D_Tree(dof,L,level,n,epsilon){};
+    myKernel(doft* dof, double L, int level, int n, double epsilon,int use_chebyshev):H2_3D_Tree(dof,L,level,n,epsilon,use_chebyshev){};
     virtual void setHomogen(string& kernelType) {
-        homogen = 1;
+        homogen = -1;
         symmetry = 1;
         kernelType = "myKernel";
     }
@@ -47,10 +47,12 @@ int main(int argc, char *argv[]) {
     int Nf;         // Number of field points in simulation cell
     int m;
     int level;
+    double alpha;
     double eps = 1e-9 ;
+    int use_chebyshev = 1;
     
     string filenameMetadata = "./../input/metadata_test_mykernel.txt";
-    read_Metadata(filenameMetadata, L, n, dof, Ns, Nf, m, level);
+    read_Metadata(filenameMetadata, L, n, dof, Ns, Nf, m, level,alpha);
     vector3 source[Ns];    // Position array for the source points
     vector3 field[Nf];     // Position array for the field points
     double q[Ns*dof.s*m];  // Source array
@@ -73,7 +75,7 @@ int main(int argc, char *argv[]) {
     
     /*****      Pre Computation     ******/
     clock_t  t0 = clock();
-    myKernel Atree(&dof,L,level, n, eps);
+    myKernel Atree(&dof,L,level, n, eps, use_chebyshev);
     Atree.buildFMMTree();
     clock_t t1 = clock();
     double tPre = t1 - t0;

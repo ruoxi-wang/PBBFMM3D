@@ -23,7 +23,7 @@ void SetMetaData(double& L, int& n, doft& dof, int& Ns, int& Nf, int& m, int& le
     Ns      = 800;  // Number of sources in simulation cell
     Nf      = 500;  // Number of field points in simulation cell
     m       = 1;
-    level   = 2;
+    level   = 3;
     eps     = 1e-9;
 }
 
@@ -82,6 +82,7 @@ int main(int argc, char *argv[]) {
     int m;
     int level;
     double eps;
+    int use_chebyshev = 1;
     
     SetMetaData(L, n, dof, Ns, Nf, m, level, eps);
     
@@ -106,7 +107,7 @@ int main(int argc, char *argv[]) {
     
     /*****      Pre Computation     ******/
     clock_t  t0 = clock();
-    kernel_ThinPlateSpline Atree(&dof,L,level, n, eps);
+    kernel_ThinPlateSpline Atree(&dof,L,level, n, eps, use_chebyshev);
     Atree.buildFMMTree();
     clock_t t1 = clock();
     double tPre = t1 - t0;
@@ -130,10 +131,10 @@ int main(int argc, char *argv[]) {
     
     /****   Test interplation error   *****/
     
-    //kernel_LaplacianForce testTree(&dof,1/4 ,2, n, eps);
-    //double errtest = testInterplationErr(&testTree, 100, 100);
+    /*kernel_Gaussian testTree(&dof,1.0/4 ,2, n, eps);
+    double errtest = testInterplationErr(&testTree, 100, 100);*/
     
-    
+
     
     /*****      output result to binary file    ******/
     string outputfilename = "../output/stress.bin";

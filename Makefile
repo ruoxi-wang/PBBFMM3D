@@ -12,9 +12,9 @@
 
 CC = g++
 LD = g++
-CFLAGS  = -c -Wall -fpermissive -mmacosx-version-min=10.5  -O3 -I ./include/
+CFLAGS  = -c -Wall -fpermissive -mmacosx-version-min=10.5  -O3 -I ./include/ 
 LDPATH = -L/usr/lib 
-LDFLAGS = -llapack -lblas -lm -mmacosx-version-min=10.5
+LDFLAGS = -llapack -lblas -lm -mmacosx-version-min=10.5 -lfftw -lrfftw 
 PFLAG  =
 SOURCES =  ./src/kernel_Types.cpp ./src/H2_3D_Tree.cpp ./src/read_metadata.cpp ./src/read_sources.cpp ./src/write_Into_Binary_File.cpp
 
@@ -38,19 +38,19 @@ EXECUTABLED=  ./exec/binary_file_mykernel
 
 get_input_through_routine_standard_kernel: $(SOURCES) $(SOURCEA) $(EXECUTABLEA)
 $(EXECUTABLEA): $(OBJECTA)
-	$(CC)  $(LDFLAGS)  $(OBJECTA) -o $@
+	$(CC)  $(LDPATH) $(LDFLAGS)  $(OBJECTA) -o $@
 
 binary_file_standard_kernel: $(SOURCES) $(SOURCEB) $(EXECUTABLEB)
 $(EXECUTABLEB): $(OBJECTB)
-	$(CC)  $(LDFLAGS)  $(OBJECTB) -o $@
+	$(CC)  $(LDPATH) $(LDFLAGS)  $(OBJECTB) -o $@
 
 get_input_through_routine_mykernel: $(SOURCES) $(SOURCEC) $(EXECUTABLEC)
 $(EXECUTABLEC): $(OBJECTC)
-	$(CC)  $(LDFLAGS)  $(OBJECTC) -o $@
+	$(CC)  $(LDPATH) $(LDFLAGS)  $(OBJECTC) -o $@
 
 binary_file_mykernel: $(SOURCES) $(SOURCED) $(EXECUTABLED)
 $(EXECUTABLED): $(OBJECTD)
-	$(CC)  $(LDFLAGS)  $(OBJECTD) -o $@
+	$(CC)  $(LDPATH) $(LDFLAGS)  $(OBJECTD) -o $@
 
 .cpp.o:
 	$(CC) $(CFLAGS) $< -o $@

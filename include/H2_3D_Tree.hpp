@@ -7,6 +7,7 @@
 
 #include"bbfmm.h"
 #include"environment.hpp"
+#include "rfftw.h"
 
 using namespace std;
 /*! The fmm tree */
@@ -14,7 +15,7 @@ class H2_3D_Tree{
 public:
     /*! Constructor of class H2_3D_Tree */
     H2_3D_Tree(doft *dof, double L,  int level, int n, double
-               epsilon);
+               epsilon, int use_chebyshev);
     doft* dof;
     double L;
     int level;
@@ -24,7 +25,8 @@ public:
 	double homogen; // Order of kernel homogeneity
     int symmetry;
     double alpha;
-
+    int use_chebyshev;
+    
 	doft cutoff;    // Compression index of SVD
 	char Kmat[50];  // File name for kernel interaction matrix K
 	char Umat[50];  // File name for matrix of singular vectors U
@@ -38,6 +40,9 @@ public:
 	int dofn3_s;
 	int dofn3_f;
 	
+    rfftw_plan p_r2c;
+    rfftw_plan p_c2r;
+    
     bool computed;
 	double *Kweights, *Cweights, *Tkz;
     int skipLevel;
@@ -51,15 +56,18 @@ public:
 	void FMMSetup(nodeT **A, double *Tkz, double *Kweights,
                   double *Cweights, double L, doft *cutoff,
                   int n,  double epsilon, doft * dof,  int level, char *Kmat, char *Umat, char *Vmat,
-                  double *Ucomp, double *Vcomp, int& skipLevel, double alpha);
+                  double *Ucomp, double *Vcomp, int& skipLevel, double alpha, int use_chebyshev,rfftw_plan p_r2c);
     
     void buildFMMTree();
     void ComputeKernelSVD(double *Kweights, int n,double epsilon, doft *dof, char*Kmat, char *Umat, char *Vmat, int symm,  double *Ucomp,double *Vcomp, double alphaAdjust, double boxLen);
+    void ComputeKernelUniformGrid(double *Kweights, int n, doft *dof,  char *Kmat, double alphaAdjust, rfftw_plan p_r2c);
     
     void ComputeWeights(double *Tkz, int *Ktable, double *Kweights,
-                        double *Cweights, int n);
+                        double *Cweights, int n,double alpha, int use_chebyshev);
     
-    void ComputeSn(vector3 *point, double *Tkz, int n, int N, vector3 *Sn);
+    void CalculateNodeLocations(int n, double* nodes, int use_chebyshev);
+    
+    void ComputeSn(vector3 *point, double *Tkz, int n, int N, vector3 *Sn, int use_chebyshev);
     
     void ComputeTk(double x, int n, double *vec);
     
@@ -74,13 +82,15 @@ public:
 	 */
 	
     // Read kernel interaction matrix K and singular vectors U and VT
-	void FMMReadMatrices(double *K, double *U, double *VT, doft *cutoff, int n, doft *dof,char *Kmat, char *Umat, char *Vmat, int treeLevel, double homogen, int skipLevel);
+	void FMMReadMatrices(double *K, double *U, double *VT, doft *cutoff, int n, doft *dof,char *Kmat, char *Umat, char *Vmat, int treeLevel, double homogen, int skipLevel, int use_chebyshev);
     
     void BuildFMMHierarchy(nodeT **A, int level, int n, doft *cutoff, doft *dof);
     
     void NewNode(nodeT **A, vector3 center, double L, int n);
     
     void FreeNode(nodeT *A);
+        
+    void GetPosition(int n, int idx, double *fieldpos, double *sourcepos, double *nodepos);
     
     virtual void EvaluateKernel(vector3 fieldpos, vector3 sourcepos,
                                  double *K, doft *dof){};

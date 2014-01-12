@@ -4,13 +4,15 @@
 
 #include"H2_3D_Tree.hpp"
 #include"bbfmm.h"
+#include"rfftw.h"
 
-H2_3D_Tree::H2_3D_Tree(doft *dof, double L, int level, int n,  double epsilon){
+H2_3D_Tree::H2_3D_Tree(doft *dof, double L, int level, int n,  double epsilon, int use_chebyshev){
     this->dof   =   dof;
     this->L     =   L;
     this->level =   level;
     this->n    =   n;
     this->epsilon   =   epsilon;
+    this->use_chebyshev = use_chebyshev;
     alpha = 0;
     n2 = n*n;         // n2 = n^2
 	n3 = n2*n;       // n3 = n^3
@@ -28,16 +30,29 @@ H2_3D_Tree::H2_3D_Tree(doft *dof, double L, int level, int n,  double epsilon){
     tree    =   NULL;
     skipLevel = 0;
     computed   =   false;
+    
+    int fftSize = (int)round(pow(2*n-1, 3));
+	p_r2c = rfftw_create_plan(fftSize, FFTW_REAL_TO_COMPLEX,
+                                         FFTW_ESTIMATE);
+	p_c2r = rfftw_create_plan(fftSize, FFTW_COMPLEX_TO_REAL,
+                                         FFTW_ESTIMATE);
 }
 
 void H2_3D_Tree::buildFMMTree() {
     FMMSetup(&tree,Tkz,Kweights,Cweights,L,&cutoff,
 			 n,epsilon,dof,level,Kmat,
-             Umat,Vmat,&Ucomp,&Vcomp, skipLevel, alpha);
-     K  = (double *)malloc(cutoff.f * (316*cutoff.s) * sizeof(double));
-     U  = (double *)malloc(dofn3_f * cutoff.f * sizeof(double));
-     VT = (double *)malloc(cutoff.s * dofn3_s * sizeof(double));
-    FMMReadMatrices(K,U,VT,&cutoff,n,dof,Kmat,Umat,Vmat, level, homogen, skipLevel);
+             Umat,Vmat,&Ucomp,&Vcomp, skipLevel, alpha, use_chebyshev,
+             p_r2c);
+    
+    int preCompLevel = (level-2)* (!homogen) + 1;
+    int Ksize = cutoff.f * (316*cutoff.s)* preCompLevel; // Change: set cutoff
+    int Usize = cutoff.f * dof->f *n*n*n* preCompLevel;
+    int Vsize = cutoff.s * dof->s *n*n*n* preCompLevel;
+    
+    K  = (double *)malloc(Ksize *sizeof(double));
+    U  = (double *)malloc(Usize *sizeof(double));
+    VT = (double *)malloc(Vsize *sizeof(double));
+    FMMReadMatrices(K,U,VT,&cutoff,n,dof,Kmat,Umat,Vmat, level, homogen, skipLevel, use_chebyshev);
 }
 
 /*
@@ -50,23 +65,37 @@ void H2_3D_Tree::buildFMMTree() {
 void H2_3D_Tree::FMMSetup(nodeT **A, double *Tkz,  double *Kweights,
                           double *Cweights, double boxLen, doft *cutoff,
                           int n, double epsilon, doft * dof,  int treeLevel, char *Kmat, char *Umat, char *Vmat,
-                          double *Ucomp, double *Vcomp,int& skipLevel, double alpha) {
+                          double *Ucomp, double *Vcomp,int& skipLevel, double alpha, int use_chebyshev, rfftw_plan
+                          p_r2c) {
     
 	vector3 center;
     setHomogen(kernelType);
     homogen = -homogen;
-	sprintf(Kmat,"./../output/%sK%d.bin",kernelType.c_str(),n);
-	sprintf(Umat,"./../output/%sU%d.bin",kernelType.c_str(),n);
-	sprintf(Vmat,"./../output/%sV%d.bin",kernelType.c_str(),n);
+    
+    if (use_chebyshev) {
+        sprintf(Kmat,"./../output/%sCK%d.bin",kernelType.c_str(),n);
+        sprintf(Umat,"./../output/%sCU%d.bin",kernelType.c_str(),n);
+        sprintf(Vmat,"./../output/%sCV%d.bin",kernelType.c_str(),n);
+    } else {
+        sprintf(Kmat,"./../output/%sUK%d.bin",kernelType.c_str(),n);
+        sprintf(Umat,"./../output/%sUU%d.bin",kernelType.c_str(),n);
+        sprintf(Vmat,"./../output/%sUV%d.bin",kernelType.c_str(),n);
+    }
+    
     // Compute the Chebyshev weights and sets up the lookup table
-	ComputeWeights(Tkz,Ktable,Kweights,Cweights,n);
+	ComputeWeights(Tkz,Ktable,Kweights,Cweights,n,alpha,use_chebyshev); //??????
     // Precompute the SVD of the kernel interaction matrix (if
     // necessary)
+    
+    
+    if (use_chebyshev) {
     int i;
     FILE *fK, *fU, *fV;
     fK = fopen(Kmat, "rb");
     fU = fopen(Umat, "rb");
     fV = fopen(Vmat, "rb");
+    
+    
     if (fK == NULL || fU == NULL || fV == NULL) { // Create files
         if (fK!=NULL)
             fclose(fK);
@@ -77,11 +106,12 @@ void H2_3D_Tree::FMMSetup(nodeT **A, double *Tkz,  double *Kweights,
         
         printf("Pre-Compute files do not exit. Creating now ...\n");
         
-        if (homogen > 1e-9) // homogeneous kernel
-            ComputeKernelSVD(Kweights, n, epsilon, dof,
-                             Kmat, Umat, Vmat, symmetry, Ucomp, Vcomp,alpha,
-                             1);
-        
+        if (homogen > 1e-9) { // homogeneous kernel
+                ComputeKernelSVD(Kweights, n, epsilon, dof,
+                                 Kmat, Umat, Vmat, symmetry, Ucomp, Vcomp,alpha,
+                                 1);
+            
+        }
         else { // non-homogeneous kernel
             
             // Open new files for writing boxLen and treeLevel
@@ -142,18 +172,32 @@ void H2_3D_Tree::FMMSetup(nodeT **A, double *Tkz,  double *Kweights,
     }
     else
         printf("Reading pre-compute files ...\n");
-    
+
     fU = fopen(Umat,"rb");
     int j = fread(&(cutoff->f), sizeof(int), 1, fU);
     fclose(fU);
-
+    
     fV = fopen(Vmat,"rb");
     j += fread(&(cutoff->s), sizeof(int), 1, fV);
     fclose(fV);
-
+    
     if (j != 2)
         printf("fread() error in FMMSetup().\n");
-    // Builds the FMM hierarchy
+
+    }
+    
+    else { // uniform
+        FILE *f;
+        if ((f=fopen(Kmat,"rb")) == NULL) {
+            ComputeKernelUniformGrid(Kweights,n,dof,Kmat,alpha, p_r2c);
+        }
+        cutoff->f = dof->f*n*n*n;
+        cutoff->s = dof->s*n*n*n;
+    }
+    
+
+    
+        // Builds the FMM hierarchy
 	center.x = 0;
 	center.y = 0;
 	center.z = 0;
@@ -170,12 +214,17 @@ void H2_3D_Tree::FMMSetup(nodeT **A, double *Tkz,  double *Kweights,
  * Read in the kernel interaction matrix M and the matrix of singular
  * vectors U.
  */
-void H2_3D_Tree::FMMReadMatrices(double *K, double *U, double *VT, doft *cutoff, int n, doft *dof,char *Kmat, char *Umat, char *Vmat, int treeLevel, double homogen, int skipLevel) {
+void H2_3D_Tree::FMMReadMatrices(double *K, double *U, double *VT, doft *cutoff, int n, doft *dof,char *Kmat, char *Umat, char *Vmat, int treeLevel, double homogen, int skipLevel, int use_chebyshev) {
 	int i = 0;
     FILE *ptr_file;
     int preCompLevel = (treeLevel-2)* (!homogen) + 1;
     
-    int Ksize = cutoff->f * (316*cutoff->s);
+    int Ksize;
+    if(use_chebyshev)
+        Ksize = cutoff->f * (316*cutoff->s); // Change: set cutoff
+	else
+	    Ksize = 316*(2*n-1)*(2*n-1)*(2*n-1)*dof->s*dof->f;
+
     int Usize = cutoff->f * dof->f *n*n*n;
     int Vsize = cutoff->s * dof->s *n*n*n;
 	
@@ -186,24 +235,33 @@ void H2_3D_Tree::FMMReadMatrices(double *K, double *U, double *VT, doft *cutoff,
     i += fread(K, sizeof(double), Ksize *preCompLevel, ptr_file);
     fclose(ptr_file);
     
-    // Read in matrix of singular vectors U
-    ptr_file = fopen(Umat,"rb");
-    fseek(ptr_file, 1*sizeof(int) + Usize *skipLevel *sizeof(double),
-          SEEK_SET);
-    i += fread(U, sizeof(double), Usize *preCompLevel, ptr_file);
-    fclose(ptr_file);
-	
-    // Read in matrix of singular vectors VT
-    ptr_file = fopen(Vmat,"rb");
-    fseek(ptr_file, 1*sizeof(int) + Vsize *skipLevel *sizeof(double),
-          SEEK_SET);
-    i += fread(VT, sizeof(double), Vsize *preCompLevel, ptr_file);
-    fclose(ptr_file);
     
-    int totleNum = (Ksize + Usize + Vsize) *preCompLevel;
-    if (i != totleNum)
-        printf("fread error in FMMReadMatrices!\n Expected numer:%d,"
-               "numbers read: %d\n", totleNum, i);
+    if (use_chebyshev) {
+        // Read in matrix of singular vectors U
+        ptr_file = fopen(Umat,"rb");
+        fseek(ptr_file, 1*sizeof(int) + Usize *skipLevel *sizeof(double),
+              SEEK_SET);
+        i += fread(U, sizeof(double), Usize *preCompLevel, ptr_file);
+        fclose(ptr_file);
+        
+        // Read in matrix of singular vectors VT
+        ptr_file = fopen(Vmat,"rb");
+        fseek(ptr_file, 1*sizeof(int) + Vsize *skipLevel *sizeof(double),
+              SEEK_SET);
+        i += fread(VT, sizeof(double), Vsize *preCompLevel, ptr_file);
+        fclose(ptr_file);
+        
+        int totleNum = (Ksize + Usize + Vsize) *preCompLevel;
+        if (i != totleNum)
+            printf("fread error in FMMReadMatrices!\n Expected numer:%d,"
+                   "numbers read: %d\n", totleNum, i);
+
+    } else {
+        int totleNum = Ksize *preCompLevel;
+        if (i != totleNum)
+            printf("fread error in FMMReadMatrices!\n Expected numer:%d,"
+                   "numbers read: %d\n", totleNum, i);
+    }
 }
 
 /*
@@ -556,6 +614,136 @@ void H2_3D_Tree::ComputeKernelSVD(double *Kweights, int n,double epsilon, doft *
 }
 
 /*
+ * Function: ComputeKernelUniformGrid
+ * ------------------------------------------------------------------
+ * Computes the kernel for 316(2n-1)^3 interactions between Uniform
+ * Grid nodes. Does not compute SVD.
+ */
+void H2_3D_Tree::ComputeKernelUniformGrid(double *Kweights, int n, doft *dof, char *Kmat, double alphaAdjust, rfftw_plan p_r2c) {
+    
+    /* TODO: multi-dof, alphaAdjust */
+    
+    int i, k1, k2, k3, l1, l2, l3;
+    vector3 scenter;
+    
+    int dof2 = dof->s * dof->f;
+    //int dof2n6 = dof2 * (2*n-1)*(2*n-1)*(2*n-1); // Total size
+    
+    double nodes[n], kernel[dof2];
+    vector3 fieldpos, sourcepos;
+    
+    
+    // Compute Chebyshev nodes of T_n(x)
+    //double scale = 1+alphaAdjust;
+    CalculateNodeLocations(n,nodes,0);
+    
+    // creat FFT plan
+    int vecSize = 2*n-1, reducedMatSize = pow(vecSize, 3);
+    int M2LSize = dof2 *reducedMatSize;
+    double *MatM2L  = (double*)malloc(M2LSize *sizeof(double));
+    double *freqMat = (double*)malloc(316 *M2LSize *sizeof(double));
+    
+    // Compute the kernel values for interactions with all 316 cells
+    int countM2L=0, count, count1;
+    int shift1, shift2, shiftGlo, shiftLoc;
+    int reducedMatSizeDofs = reducedMatSize *dof->s;
+    int f, s;
+    
+    for (k1=-3;k1<4;k1++) {
+        scenter.x = (double)k1;
+        for (k2=-3;k2<4;k2++) {
+            scenter.y = (double)k2;
+            for (k3=-3;k3<4;k3++) {
+                scenter.z = (double)k3;
+                if (abs(k1) > 1 || abs(k2) > 1 || abs(k3) > 1) {
+                    
+                    for (count=0, l1=0; l1<vecSize; l1++) {
+                        GetPosition(n, l1, &fieldpos.x, &sourcepos.x, nodes);
+                        sourcepos.x += scenter.x;
+                        for (l2=0; l2<vecSize; l2++) {
+                            GetPosition(n, l2, &fieldpos.y, &sourcepos.y, nodes);
+                            sourcepos.y += scenter.y;
+                            for (l3=0; l3<vecSize; l3++, count++) {
+                                GetPosition(n, l3, &fieldpos.z, &sourcepos.z, nodes);
+                                sourcepos.z += scenter.z;
+                                
+                                EvaluateKernel(fieldpos,sourcepos,kernel,dof);
+                                
+                                // kernel[f x s] in column major
+                                // MatM2L[(2n-1)^3 x s x f] in column
+                                // major
+                                count1 = 0;
+                                shift1 = count;
+                                for (s=0; s < dof->s; s++) {
+                                    for(f=0, shift2=0; f < dof->f; f++) {
+                                        MatM2L[shift1 + shift2] =  kernel[count1++];
+                                        shift2 += reducedMatSizeDofs;
+                                    }
+                                    shift1 += reducedMatSize;
+                                }
+                            }
+                        }
+                    }
+                    
+                    // FFT
+                    shiftGlo = countM2L *M2LSize;
+                    
+                    for (i=0, shiftLoc=0; i<dof2; i++) {
+                        rfftw_one(p_r2c, MatM2L + shiftLoc, freqMat +
+                                  shiftGlo + shiftLoc);
+                        shiftLoc += reducedMatSize;
+                    }
+                    
+                
+                    
+                    countM2L++;
+                }
+            }
+        }
+    }
+    	
+    FILE *ptr_file;
+    ptr_file = fopen(Kmat, "wb");
+    fwrite(freqMat, sizeof(double),316 *M2LSize, ptr_file);
+    fclose(ptr_file);
+    
+    free(MatM2L);
+    free(freqMat);
+    
+}
+
+void H2_3D_Tree::CalculateNodeLocations(int n, double* nodes, int use_chebyshev)
+{
+    int m;
+    double pi = M_PI;
+    if(use_chebyshev) {
+        for (m=0; m<n; m++)
+            nodes[m] = cos(pi*((double)m+0.5)/(double)n);
+    }
+    else {
+        for (m=0; m<n; m++)
+            nodes[m] = 1 - 2*(double)m/((double)(n-1));
+    }
+}
+
+/*
+ * Given n node positions and returns corresponding field and source
+ * positions with respect to the index
+ */
+void H2_3D_Tree::GetPosition(int n, int idx, double *fieldpos, double *sourcepos, double *nodepos) {
+    
+    if (idx < n) {
+        *fieldpos  = nodepos[n-1]/2;
+        *sourcepos = nodepos[idx]/2;
+    } else {
+        *fieldpos  = nodepos[2*(n-1)-idx]/2;
+        *sourcepos = nodepos[n-1]/2;
+    }
+    
+}
+
+
+/*
  * Function: EvaluateKernelCell
  * -------------------------------------------------------------------
  * Evaluates the kernel for interactions between a pair of cells.
@@ -599,7 +787,7 @@ void H2_3D_Tree::EvaluateKernelCell(vector3 *field, vector3 *source, int Nf,
  */
 
 void H2_3D_Tree::ComputeWeights(double *Tkz, int *Ktable, double *Kweights,
-					double *Cweights, int n) {
+					double *Cweights, int n, double alpha, int use_chebyshev) {
 	int i, k, m, l1, l2, l3, count, ncell, ninteract;
 	double tmp1, tmp2;
 	vector3 vtmp;
@@ -613,7 +801,7 @@ void H2_3D_Tree::ComputeWeights(double *Tkz, int *Ktable, double *Kweights,
 	fieldt = (vector3 *)malloc(Nc * sizeof(vector3));
     // Chebyshev-transformed coordinates
 	Sn     = (vector3 *)malloc(n * Nc * sizeof(vector3));
-	double pi = M_PI;
+	//double pi = M_PI;
 	
     // Initialize lookup table
 	for (i=0;i<343;i++)
@@ -634,8 +822,11 @@ void H2_3D_Tree::ComputeWeights(double *Tkz, int *Ktable, double *Kweights,
 	}
 
     // Compute the n Chebyshev nodes of T_n(x)
-	for (m=0; m<n; m++)
-		nodes[m] = cos(pi*((double)m+0.5)/(double)n);
+//	for (m=0; m<n; m++)
+//		nodes[m] = cos(pi*((double)m+0.5)/(double)n);
+    
+    // Compute n Chebyshev nodes in [-.5, .5]
+	CalculateNodeLocations(n,nodes,use_chebyshev);
 
     // Evaluate the Chebyshev polynomials of degree 0 to n-1 at the nodes
 	for (m=0; m<n; m++) {
@@ -646,45 +837,63 @@ void H2_3D_Tree::ComputeWeights(double *Tkz, int *Ktable, double *Kweights,
         }
 	}
 
-    // Compute the weights for the kernel matrix K
-	count = 0;
-	for (l1=0;l1<n;l1++) {
-		tmp1 = 1./sqrt(1-nodes[l1]*nodes[l1]);
-		for (l2=0;l2<n;l2++) {
-			tmp2 = tmp1/sqrt(1-nodes[l2]*nodes[l2]);
-			for (l3=0;l3<n;l3++) {
-				Kweights[count] = tmp2/sqrt(1-nodes[l3]*nodes[l3]);
-				count++;
-			}
-		}
+    if (use_chebyshev) {
+		// Compute the weights for the kernel matrix K
+        count = 0;
+        for (l1=0;l1<n;l1++) {
+            tmp1 = 1./sqrt(1-nodes[l1]*nodes[l1]);
+            for (l2=0;l2<n;l2++) {
+                tmp2 = tmp1/sqrt(1-nodes[l2]*nodes[l2]);
+                for(l3=0;l3<n;l3++) {
+                    Kweights[count] = tmp2/sqrt(1-nodes[l3]*nodes[l3]);
+                    count++;
+                }
+            }
+        }
 	}
-	
-    // Map all Chebyshev nodes from the children cells to the parent
+	else {
+        // Compute the weights for the kernel matrix K
+        count = 0;
+        for (l1=0;l1<n;l1++) {
+            tmp1 = 1./sqrt(1-nodes[l1]*nodes[l1]);
+            for (l2=0;l2<n;l2++) {
+                tmp2 = tmp1/sqrt(1-nodes[l2]*nodes[l2]);
+                for(l3=0;l3<n;l3++) {
+                    Kweights[count] = 1; //tmp2/sqrt(1-nodes[l3]*nodes[l3]);
+                    count++;
+                }
+            }
+        }
+	}
+	// Map all Chebyshev nodes from the children cells to the parent
 	k = 0;
+    double scale = 1 / (1+alpha);
+    //scale = 1;
 	for (i=0;i<2;i++) {
         // Determine the mapping function for the specific child cell
-		vtmp.x = -1;
-		vtmp.y = -1;
+		vtmp.x = -0.5;
+		vtmp.y = -0.5;
 		
 		if (i == 0)
-			vtmp.z = -1;
+			vtmp.z = -0.5;
 		else
-			vtmp.z = 1;
+			vtmp.z = 0.5;
 		
 		for (l1=0;l1<n;l1++) {
 			for (l2=0;l2<n;l2++) {
 				for (l3=0;l3<n;l3++) {
-					fieldt[k].x = 0.5*(nodes[l1] + vtmp.x);
-					fieldt[k].y = 0.5*(nodes[l2] + vtmp.y);
-					fieldt[k].z = 0.5*(nodes[l3] + vtmp.z);
-					k++;
+                    fieldt[k].x = nodes[l1] * .5 + vtmp.x * scale;
+                    fieldt[k].y = nodes[l2] * .5 + vtmp.y * scale;
+                    fieldt[k].z = nodes[l3] * .5 + vtmp.z * scale;
+                    k++;
 				}
 			}
 		}
 	}
+
     
     // Compute Sc, the mapping function for the field points
-	ComputeSn(fieldt,Tkz,n,Nc,Sn);
+	ComputeSn(fieldt,Tkz,n,Nc,Sn, use_chebyshev);
 	
     // Extract out the Chebyshev weights
 	count = 0;
@@ -710,7 +919,6 @@ void H2_3D_Tree::ComputeWeights(double *Tkz, int *Ktable, double *Kweights,
 
 
 
-
 /*
  * Function: ComputeSn
  * ------------------------------------------------------------------
@@ -719,38 +927,80 @@ void H2_3D_Tree::ComputeWeights(double *Tkz, int *Ktable, double *Kweights,
  * Sn(xm, xi) = -1/2 + sum_0^(n-1) Tk(xm) Tk(xi)
  * Notice there is another prefactor = 2/n that will be applied later
  */
-void H2_3D_Tree::ComputeSn(vector3 *point, double *Tkz, int n, int N, vector3 *Sn) {
+void H2_3D_Tree::ComputeSn(vector3 *point, double *Tkz, int n, int N, vector3 *Sn, int use_chebyshev) {
 	int i, j, k, m;
-	double vec[n], d[n+2], x;
+	double vec[n], d[n+2], x, num, denom;
 	
-	for (m=0;m<n;m++) {
-        // Extract T_k for the Chebyshev node x_m
-		k = m*n;
-		for (j=0;j<n;j++)
-			vec[j] = Tkz[k+j];
-		
-        // Compute S_n for each direction independently using Clenshaw
-		k = m*N;
-		for (i=0;i<N;i++) {
-			x = point[i].x;
-			d[n] = d[n+1] = 0.;
-			for (j=n-1;j>0;j--)
-				d[j] = 2.0*x*d[j+1] - d[j+2] + vec[j];
-			Sn[k+i].x = x*d[1] - d[2] + 0.5*vec[0];
-			
-			x = point[i].y;
-			d[n] = d[n+1] = 0.;
-			for (j=n-1;j>0;j--)
-				d[j] = 2.0*x*d[j+1] - d[j+2] + vec[j];
-			Sn[k+i].y = x*d[1] - d[2] + 0.5*vec[0];
-			
-			x = point[i].z;
-			d[n] = d[n+1] = 0.;
-			for (j=n-1;j>0;j--)
-				d[j] = 2.0*x*d[j+1] - d[j+2] + vec[j];
-			Sn[k+i].z = x*d[1] - d[2] + 0.5*vec[0];
-		}
+    if(use_chebyshev) {
+        for (m=0;m<n;m++) {
+	  		// Extract T_k for the Chebyshev node x_m
+            k = m*n;
+            for (j=0;j<n;j++)
+                vec[j] = Tkz[k+j];
+            
+	  		// Compute S_n for each direction independently using Clenshaw
+            k = m*N;
+            for (i=0;i<N;i++) {
+                x = point[i].x;
+                d[n] = d[n+1] = 0.;
+                for (j=n-1;j>0;j--)
+                    d[j] = 2.0*x*d[j+1] - d[j+2] + vec[j];
+                Sn[k+i].x = x*d[1] - d[2] + 0.5*vec[0];
+                
+                x = point[i].y;
+                d[n] = d[n+1] = 0.;
+                for (j=n-1;j>0;j--)
+                    d[j] = 2.0*x*d[j+1] - d[j+2] + vec[j];
+                Sn[k+i].y = x*d[1] - d[2] + 0.5*vec[0];
+                
+                x = point[i].z;
+                d[n] = d[n+1] = 0.;
+                for (j=n-1;j>0;j--)
+                    d[j] = 2.0*x*d[j+1] - d[j+2] + vec[j];
+                Sn[k+i].z = x*d[1] - d[2] + 0.5*vec[0];
+            }
+        }
 	}
+    else {
+        for (m=0;m<n;m++) {
+            
+            k = m*N;
+            for (i=0;i<N;i++) {
+                x = point[i].x;
+                num = 1.;
+                denom = 1.;
+                for (j=0;j<n;j++) {
+                    if(m!=j) {
+                        num *= x - (1-2*(double)j/(double)(n-1));
+                        denom *= 2*((double)m-(double)j)/(double)(n-1);
+                    }
+                }
+                Sn[k+i].x = num/denom;
+                
+                x = point[i].y;
+                num = 1.;
+                denom = 1.;
+                for (j=0;j<n;j++) {
+                    if(m!=j) {
+                        num *= x - (1-2*(double)j/(double)(n-1));
+                        denom *= 2*((double)m-(double)j)/(double)(n-1);
+                    }
+                }
+                Sn[k+i].y = num/denom;
+                
+                x = point[i].z;
+                num = 1.;
+                denom = 1.;
+                for (j=0;j<n;j++) {
+                    if(m!=j) {
+                        num *= x - (1-2*(double)j/(double)(n-1));
+                        denom *= 2*((double)m-(double)j)/(double)(n-1);
+                    }
+                }
+                Sn[k+i].z = num/denom;
+            }
+        }
+    }
 }
 /*
  * Function: ComputeTk
@@ -848,7 +1098,7 @@ void H2_3D_Tree::NewNode(nodeT **A, vector3 center, double L, int n) {
     (*A)->fieldval  = NULL;
     (*A)->sourceval = NULL;
     (*A)->proxysval = NULL;
-    
+    (*A)->sourcefre = NULL;
 	(*A)->fieldlist  = NULL;
 	(*A)->sourcelist = NULL;
 	(*A)->center     = center;
@@ -889,7 +1139,8 @@ void H2_3D_Tree::FreeNode(nodeT *A) {
         free(A->sourceval), A->sourceval=NULL;
 	if (A->proxysval != NULL)
         free(A->proxysval), A->proxysval=NULL;
-	
+	if (A->sourcefre != NULL)
+	    free(A->sourcefre), A->sourcefre=NULL;
     // Free the field and source lists
 	if (A->fieldlist != NULL)
         free(A->fieldlist), A->fieldlist=NULL;

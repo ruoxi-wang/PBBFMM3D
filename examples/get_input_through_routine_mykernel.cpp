@@ -68,9 +68,9 @@ void SetSources(vector3 *field, int Nf, vector3 *source, int Ns, double *q, int 
 
 class myKernel: public H2_3D_Tree {
 public:
-    myKernel(doft* dof, double L, int level, int n,  double epsilon):H2_3D_Tree(dof,L,level,n, epsilon){};
+    myKernel(doft* dof, double L, int level, int n,  double epsilon, int use_chebyshev):H2_3D_Tree(dof,L,level,n, epsilon, use_chebyshev){};
     virtual void setHomogen(string& kernelType) {
-        homogen = 1;
+        homogen = -1;
         symmetry = 1;
         kernelType = "myKernel";
     }
@@ -100,6 +100,7 @@ int main(int argc, char *argv[]) {
     int m;
     int level;
     double eps;
+    int use_chebyshev = 0;
     
     SetMetaData(L, n, dof, Ns, Nf, m, level, eps);
     
@@ -124,7 +125,7 @@ int main(int argc, char *argv[]) {
     
     /*****      Pre Computation     ******/
     clock_t  t0 = clock();
-    myKernel Atree(&dof,L,level, n, eps);
+    myKernel Atree(&dof,L,level, n, eps, use_chebyshev);
     Atree.buildFMMTree();
     clock_t t1 = clock();
     double tPre = t1 - t0;
