@@ -6,13 +6,12 @@
 
 BBFMM3D is an open source package of the <a href="http://www.sciencedirect.com/science/article/pii/S0021999109004665">Black-box Fast Multipole Method</a> in 3 dimensions.   
 The Black-box Fast Multipole Method is an O(N) fast multipole method, which is a technique to calculate sums of the form  
- <img src="http://latex.codecogs.com/svg.latex? $f(x_i) = \displaystyle \sum_{j=1}^N K(x_i,y_j) \sigma_j, \,\,\, \forall i \in\{1,2,\ldots,N\}$ " border="0"/>  
 
-<a href="http://www.codecogs.com/eqnedit.php?latex=f(x_i)&space;=&space;\displaystyle&space;\sum_{j=1}^N&space;K(x_i,y_j)&space;\sigma_j,&space;\,\,\,&space;\forall&space;i&space;\in\{1,2,\ldots,N\}" target="_blank"><img src="http://latex.codecogs.com/gif.latex?f(x_i)&space;=&space;\displaystyle&space;\sum_{j=1}^N&space;K(x_i,y_j)&space;\sigma_j,&space;\,\,\,&space;\forall&space;i&space;\in\{1,2,\ldots,N\}" title="f(x_i) = \displaystyle \sum_{j=1}^N K(x_i,y_j) \sigma_j, \,\,\, \forall i \in\{1,2,\ldots,N\}" /></a>
+![](http://latex.codecogs.com/gif.latex?f%28x_i%29%20%3D%20%5Cdisplaystyle%20%5Csum_%7Bj%3D1%7D%5EN%20K%28x_i%2Cy_j%29%20%5Csigma_j%2C%20%5C%2C%5C%2C%5C%2C%20%5Cforall%20i%20%5Cin%5C%7B1%2C2%2C%5Cldots%2CN%5C%7D)
 
-where <img src="http://latex.codecogs.com/svg.latex? $K(x_i,y_j)$" border="0"/> is kernel function, <img src="http://latex.codecogs.com/svg.latex? $x_i$" border="0"/> are observation points, <img src="http://latex.codecogs.com/svg.latex? $y_i$" border="0"/> are locations of sources, and <img src="http://latex.codecogs.com/svg.latex? $\sigma_i$" border="0"/> are charges at corresponding locations.
-BBFMM3D provides an O(N) solution to matrix-vector products of the type <img src="http://latex.codecogs.com/svg.latex? $Ax$" border="0"/>. In that case the relation between A and K is:
-<img src="http://latex.codecogs.com/svg.latex? $A_{ij} = K(x_i,y_j)$ " border="0"/>.
+where ![](http://latex.codecogs.com/gif.latex?K%28x_i%2Cx_j%29) is kernel function, ![](http://latex.codecogs.com/gif.latex?x_i) are observation points, ![](http://latex.codecogs.com/gif.latex?y_j) are locations of sources, and ![](http://latex.codecogs.com/gif.latex?%5Csigma_i) are charges at corresponding locations.
+BBFMM3D provides an O(N) solution to matrix-vector products of the type Ax. In that case the relation between A and K is:
+![](http://latex.codecogs.com/gif.latex?A_%7Bij%7D%20%3D%20K%28x_i%2Cy_j%29)
 
 This implementation of the FMM differs from other methods by the fact that it is applicable to all smooth kernels K. [Give examples of RBF kernels, 1/r, log r, Stokes, etc.].
 
@@ -130,44 +129,41 @@ Options of kernels:
 * LOGARITHM kernel:           
 	usage: kernel_Logarithm  
 	kernel function:  
-    <img src="http://latex.codecogs.com/svg.latex?  $K(x,y) = 0.5 \log(r^2)\, (r\neq 0);\, K(x,y)= 0 \,(r=0).$ " border="0"/> 
+    ![](http://latex.codecogs.com/gif.latex?K%28x%2Cy%29%20%3D%200.5%20%5Clog%28r%5E2%29%5C%2C%20%28r%5Cneq%200%29%3B%5C%2C%20K%28x%2Cy%29%3D%200%20%5C%2C%28r%3D0%29.)
 	
 	
 * ONEOVERR2 kernel:  
 	usage: kernel_OneOverR2  
 	kernel function:  
-    <img src="http://latex.codecogs.com/svg.latex?  $K(x,y) = 1 / r^2 \,(r \neq 0);\, K(x,y)= 0 \,(r=0)$." border="0"/>   
+    ![](http://latex.codecogs.com/gif.latex?K%28x%2Cy%29%20%3D%201%20/%20r%5E2%20%5C%2C%28r%20%5Cneq%200%29%3B%5C%2C%20K%28x%2Cy%29%3D%200%20%5C%2C%28r%3D0%29%24) 
 	
 * GAUSSIAN kernel:  
 	usage: kernel_Gaussian  
 	kernel function:  
-	<img src="http://latex.codecogs.com/svg.latex? $K(x,y) = exp(-r^2)$." border="0"/>   
+	![](http://latex.codecogs.com/gif.latex?K%28x%2Cy%29%20%3D%20exp%28-r%5E2%29)   
 	
 * QUADRIC kernel:  
 	usage: kernel_Quadric  
 	kernel function:  
-	 <img src="http://latex.codecogs.com/svg.latex? $K(x,y) = 1 + r^2$." border="0"/>   
-
+	![](http://latex.codecogs.com/gif.latex?K%28x%2Cy%29%20%3D%201%20&plus;%20r%5E2)
 * INVERSEQUADRIC kernel:  
 	usage: kernel_InverseQuadric  
 	kernel function:  
-	 <img src="http://latex.codecogs.com/svg.latex? $K(x,y) = 1 / (1+r^2)$." border="0"/> 
-	
+	![](http://latex.codecogs.com/gif.latex?K%28x%2Cy%29%20%3D%201%20/%20%281&plus;r%5E2%29)	
 * THINPLATESPLINE kernel:  
 	usage:  kernel_ThinPlateSpline  
 	kernel function:  
-	<img src="http://latex.codecogs.com/svg.latex? $K(x,y) =  0.5 r^2 \log(r^2 )\, (r \neq 0);\, K(x,y)=0\,(r=0).$" border="0"/>  
+	![](http://latex.codecogs.com/gif.latex?K%28x%2Cy%29%20%3D%200.5%20r%5E2%20%5Clog%28r%5E2%20%29%5C%2C%20%28r%20%5Cneq%200%29%3B%5C%2C%20K%28x%2Cy%29%3D0%5C%2C%28r%3D0%29) 
 
 * LAPLACIAN kernel:  
 	usage: kernel_Lapacian  
 	kernel function:  
-	<img src="http://latex.codecogs.com/svg.latex? $K(x,y) =  1 / r.$" border="0"/>  
-
+	![](http://latex.codecogs.com/gif.latex?K%28x%2Cy%29%20%3D%201%20/%20r)
+	
 * ONEOVERR4 kernel:  
 	usage: kernel_OneOverR4  
 	kernel function:  
-	<img src="http://latex.codecogs.com/svg.latex? $K(x,y) =  1 / r^4.$" border="0"/>
-	
+	![](http://latex.codecogs.com/gif.latex?K%28x%2Cy%29%20%3D%201%20/%20r%5E4)	
 * LAPLACIANFORCE kernel:  
 	usage: kernel_LaplacianForce  
 	
@@ -216,14 +212,14 @@ The basic usage is almost the same as **3.2.1** except that you have to define y
     }
 
 You can define your own kernel inside `EvaluateKernel(vector3 fieldpos, vector3 sourcepos,
-                                double *K, doft *dof)`, it takes field point, source point and degree of freedom(see **3.2.1**) as input, and pass the kernel value to K. (More about this????)
-                                
+                                double *K, doft *dof)`, it takes field point, source point and degree of freedom(see **3.2.1**) as input, and pass the kernel value to K. 
+                                                                
 You also need to define information about kernel inside `setHomogen(string& kernelType)` 
 
 * homogen:
 	The homogeneous property of kernel.(The cost and memory requirements of the pre-computation step can be reduced for the case of homogeneous kernels.)
 	* homogen = 0: if the kernel funtion is not homogeneous.
-	* homogen = m: if the kernel funtion is homogeneous of degree m, i.e. <img src="http://latex.codecogs.com/gif.latex? $K(\alpha x, \alpha y) = \alpha^m K(x,y)$." border="0"/>
+	* homogen = m: if the kernel funtion is homogeneous of degree m, i.e. ![](http://latex.codecogs.com/gif.latex?K%28%5Calpha%20x%2C%20%5Calpha%20y%29%20%3D%20%5Calpha%5Em%20K%28x%2Cy%29)
 	* symmetry:   
 	The symmetry property of the kernel.
 	* symmetry = 0:  no symmetric property; 
