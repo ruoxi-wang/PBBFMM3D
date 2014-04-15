@@ -12,7 +12,7 @@
 
 CC = g++
 LD = g++
-CFLAGS  = -c -Wall -fpermissive -mmacosx-version-min=10.5  -O3 -I ./include/ 
+CFLAGS  = -c -Wall -fpermissive -mmacosx-version-min=10.5 -O3 -I ./include/ 
 LDPATH = -L/usr/lib 
 LDFLAGS = -llapack -lblas -lm -mmacosx-version-min=10.5 -lfftw -lrfftw 
 PFLAG  =

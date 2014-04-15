@@ -1,6 +1,5 @@
 
 /*!	\file test.hpp
-  Defines different types of kernel
 */
 #ifndef __test_hpp__
 #define __test_hpp__
@@ -20,71 +19,79 @@ template<typename T>
 void DirectCalc3D(T* FMMtree, vector3 *field, int Nf, vector3 *source, double *q, int m,
                   int Ns, doft *dof, int lpbc, double L,
                   double *phi) {
-    
-    int i, j, l1, l2, l3;
+
+    int i, j, l1, l2, l3, begGlobal,k;
+    int dof2 = dof->f * dof->s;
     int dof_f = dof->f, dof_s = dof->s;
     vector3 sourcepos, cshift;
     char trans[] = "n";
     double alpha = 1;
     int incr = 1;
     double* Kij = new double[dof_f*dof_s];
+    int iii = 0;
+    while ( iii < dof_f*dof_s){
+        Kij[iii++] = 0.0;
+    }
+
+    // Compute the interactions inside the computational cell
+    //EvaluateField(field,source,q,Nf,Ns,dof,elasConst,phi);
     
-    
-    int dofNf = dof_f*Nf, dofNs = dof_s*Ns, begGlobal, k,l, count;
-    double *KPBC = new double[dofNf*dofNs];
+    int dofNf = dof_f*Nf; //, dofNs = dof_s*Ns;
+
     
     int start = floor(0.5 + (pow(3,lpbc)-1)/2.);
-    
-    
+        
     int end;
     if (lpbc == 0)
-        end = -1;
+    end = -1;
     else if (lpbc == 1)
-        end = 0;
+    end = 0;
     else
-        end = 1;
+    end = 1;
     
-    
+        
     printf("Direct calculation starts from: %d to %d.\n", end+1, start);
+
     
     // Compute the interactions due to periodic image cells
-    for (i=0;i<Nf;i++) {
-        for (j=0;j<Ns;j++) {
-            
-            begGlobal = j*dofNf*dof_s + i*dof_f;
-            
-            for (l1=-start;l1<start+1;l1++) {
-                cshift.x = (double)l1*L;
-                for (l2=-start;l2<start+1;l2++) {
-                    cshift.y = (double)l2*L;
-                    for (l3=-start;l3<start+1;l3++) {
-                        cshift.z = (double)l3*L;
-                        if (abs(l1) > end || abs(l2) > end || abs(l3) > end) {
-                            sourcepos.x = source[j].x + cshift.x;
-                            sourcepos.y = source[j].y + cshift.y;
-                            sourcepos.z = source[j].z + cshift.z;
-                            FMMtree->EvaluateKernel(field[i],sourcepos, Kij,dof);
-                            count = 0;
-                            for (l=0; l<dof_s; l++)
-                                for (k=0; k<dof_f; k++, count++)
-                                    KPBC[begGlobal + l*dofNf + k] += Kij[count];
-                            
-                        }
+    for (i=0;i<Nf;i++) {    
+    for (j=0;j<Ns;j++) {
+
+        begGlobal = j*dofNf*dof_s + i*dof_f;
+        
+        for (l1=-start;l1<start+1;l1++) {
+        cshift.x = (double)l1*L;
+        for (l2=-start;l2<start+1;l2++) {
+            cshift.y = (double)l2*L;
+            for (l3=-start;l3<start+1;l3++) {
+            cshift.z = (double)l3*L;
+            if (abs(l1) > end || abs(l2) > end || abs(l3) > end) {
+                sourcepos.x = source[j].x + cshift.x;
+                sourcepos.y = source[j].y + cshift.y;
+                sourcepos.z = source[j].z + cshift.z;
+                
+                FMMtree->EvaluateKernel(field[i],sourcepos,Kij,dof);
+                for (k=0;k<dof2;k++) {
+                    if (isinf(Kij[k])) {
+                        Kij[k] = 0;
                     }
                 }
+
+                for (k = 0; k < m; k++) {
+                    dgemv_(trans,&dof_f,&dof_s,&alpha,Kij,&dof_f,q+Ns*dof_s*k+dof_s*j,&incr,&alpha,phi+Nf*dof_f*k+dof_f*i,&incr);
+
+                }
+
+            }
             }
         }
+        }
     }
-    
-    double beta = 0;
-    for (int i = 0; i < m; i++) {
-        dgemv_(trans,&dofNf,&dofNs,&alpha,KPBC,&dofNf,&q[i*Ns*dof->s],&incr,&beta,&phi[i*Nf*dof->f],&incr);
     }
+
     delete []Kij;
     Kij = NULL;
-    //free(KPBC);
-    delete []KPBC;
-    KPBC=NULL;
+    
 }
 
 double ComputeError(double *phi, double *phidir, int Nf, doft *dof, int m) {
@@ -109,11 +116,9 @@ double ComputeError(double *phi, double *phidir, int Nf, doft *dof, int m) {
 
 template <typename T>
 double testInterplationErr(T* Atree, int Ns, int Nf) {
-    cout << "hrere" << endl;
 
     Atree->buildFMMTree();
     int  i, j, k=0;
-    cout << "hrere" << endl;
     vector3 source[Ns];    // Position array for the source points
     vector3 field[Nf];     // Position array for the field points
     double q[Ns*Atree->dof->s];  // Source array
@@ -142,14 +147,11 @@ double testInterplationErr(T* Atree, int Ns, int Nf) {
     
     double *stress      =  new double[Nf*Atree->dof->f];// Field array (BBFMM calculation)
     double *stress_dir  =  new double[Nf*Atree->dof->f];// Field array (direct O(N^2) calculation)
-    cout << "hrere" << endl;
 
     
     H2_3D_Compute<T> compute(Atree, field, source, Ns, Nf, q,1, stress);
-    cout << "hrere" << endl;
 
     DirectCalc3D(Atree, field, Nf, source, q, 1, Ns, Atree->dof,0 ,0, stress_dir);
-    cout << "hrere" << endl;
 
     double err = ComputeError(stress,stress_dir,Nf,Atree->dof,1);
     delete []stress;

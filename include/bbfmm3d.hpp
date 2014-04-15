@@ -1,6 +1,6 @@
 
 /*!	\file bbfmm3d.hpp
-  Defines different types of kernel
+	header files
 */
 #ifndef __bbfmm3d_hpp__
 #define __bbfmm3d_hpp__

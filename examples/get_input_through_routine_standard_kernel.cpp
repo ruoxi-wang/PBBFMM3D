@@ -1,15 +1,3 @@
-/*
- * Function: main.c
- * Description: Provides an example of using the black-box fast multipole
- * method for computing fields in the simulation cell.
- * Usage: ./bbfmm N L n
- * ----------------------------------------------------------------------
- * 
- * Black-Box Fast Multipole Method (BBFMM)
- * William Fong
- * Stanford University
- *
- */
 
 #include "bbfmm3d.hpp"
 #include<iostream>
@@ -20,8 +8,8 @@ void SetMetaData(double& L, int& n, doft& dof, int& Ns, int& Nf, int& m, int& le
     n       = 4;    // Number of Chebyshev nodes per dimension
     dof.f   = 1;
     dof.s   = 1;
-    Ns      = 800;  // Number of sources in simulation cell
-    Nf      = 500;  // Number of field points in simulation cell
+    Ns      = 5e4;  // Number of sources in simulation cell
+    Nf      = 5e4;  // Number of field points in simulation cell
     m       = 1;
     level   = 3;
     eps     = 1e-9;
@@ -107,14 +95,14 @@ int main(int argc, char *argv[]) {
     
     /*****      Pre Computation     ******/
     clock_t  t0 = clock();
-    kernel_ThinPlateSpline Atree(&dof,L,level, n, eps, use_chebyshev);
+    kernel_OneOverR4 Atree(&dof,L,level, n, eps, use_chebyshev);
     Atree.buildFMMTree();
     clock_t t1 = clock();
     double tPre = t1 - t0;
 
     /*****      FMM Computation     *******/
     t0 = clock();
-    H2_3D_Compute<kernel_ThinPlateSpline> compute(&Atree, field, source, Ns, Nf, q,m, stress);
+    H2_3D_Compute<kernel_OneOverR4> compute(&Atree, field, source, Ns, Nf, q,m, stress);
     t1 = clock();
     double tFMM = t1 - t0;
     
@@ -131,8 +119,8 @@ int main(int argc, char *argv[]) {
     
     /****   Test interplation error   *****/
     
-    /*kernel_Gaussian testTree(&dof,1.0/4 ,2, n, eps);
-    double errtest = testInterplationErr(&testTree, 100, 100);*/
+//    kernel_Gaussian testTree(&dof,1.0/4 ,2, n, eps, use_chebyshev);
+//    double errtest = testInterplationErr(&testTree, 100, 100);
     
 
     
@@ -152,6 +140,7 @@ int main(int argc, char *argv[]) {
     
     cout << "Pre-computation time: " << double(tPre) / double(CLOCKS_PER_SEC) << endl;
     cout << "FMM computing time:   " << double(tFMM) / double(CLOCKS_PER_SEC)  << endl;
+    cout << "FMM total time:   "  << double(tPre+tFMM) / double(CLOCKS_PER_SEC)  << endl;
     cout << "Exact computing time: " << double(tExact) / double(CLOCKS_PER_SEC)  << endl;
     
     // Compute the 2-norm error

@@ -18,10 +18,10 @@ void SetMetaData(double& L, int& n, doft& dof, int& Ns, int& Nf, int& m, int& le
     n       = 4;    // Number of Chebyshev nodes per dimension
     dof.f   = 1;
     dof.s   = 1;
-    Ns      = 800;  // Number of sources in simulation cell
-    Nf      = 500;  // Number of field points in simulation cell
-    m       = 1;
-    level   = 2;
+    Ns      = 1000;  // Number of sources in simulation cell
+    Nf      = 1000;  // Number of field points in simulation cell
+    m       = 2;
+    level   = 3;
     eps     = 1e-9;
 }
 
@@ -70,7 +70,7 @@ class myKernel: public H2_3D_Tree {
 public:
     myKernel(doft* dof, double L, int level, int n,  double epsilon, int use_chebyshev):H2_3D_Tree(dof,L,level,n, epsilon, use_chebyshev){};
     virtual void setHomogen(string& kernelType) {
-        homogen = -1;
+        homogen = 0;
         symmetry = 1;
         kernelType = "myKernel";
     }
@@ -100,14 +100,13 @@ int main(int argc, char *argv[]) {
     int m;
     int level;
     double eps;
-    int use_chebyshev = 0;
+    int use_chebyshev = 1;
     
     SetMetaData(L, n, dof, Ns, Nf, m, level, eps);
     
-    
     vector3 source[Ns];    // Position array for the source points
     vector3 field[Nf];     // Position array for the field points
-    double q[Ns*dof.s*m];  // Source array
+    double *q = new double[Ns*dof.s*m];  // Source array
     
     SetSources(field,Nf,source,Ns,q,m,&dof,L);
     
@@ -152,6 +151,7 @@ int main(int argc, char *argv[]) {
     
     cout << "Pre-computation time: " << double(tPre) / double(CLOCKS_PER_SEC) << endl;
     cout << "FMM computing time:   " << double(tFMM) / double(CLOCKS_PER_SEC)  << endl;
+    cout << "FMM total time:   " << double(tFMM+tPre) / double(CLOCKS_PER_SEC)  << endl;
     cout << "Exact computing time: " << double(tExact) / double(CLOCKS_PER_SEC)  << endl;
     
     // Compute the 2-norm error
@@ -162,5 +162,6 @@ int main(int argc, char *argv[]) {
     
     delete []stress;
     delete []stress_dir;
+    delete []q;
     return 0;
 }

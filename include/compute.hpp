@@ -603,10 +603,14 @@ void H2_3D_Compute<T>::EvaluateField(vector3 *field, vector3 *source, double *q,
                 FMMTree->EvaluateKernel(field[i],source[j],Kij,dof);
             }
 			else { // The source point and the filed overlape
-				for (k=0;k<dof2;k++)
-					Kij[k] = 0;
-			}
-            
+                FMMTree->EvaluateKernel(field[i],source[j],Kij,dof);
+                for (k=0;k<dof2;k++) {
+                    if (isinf(Kij[k])) {
+                        Kij[k] = 0;
+                    }
+                }
+            }
+  
 			count_kernel = dof->f * i + LDA * dof->s * j;
 			count = 0;
 			for (k=0;k<dof->s;k++)

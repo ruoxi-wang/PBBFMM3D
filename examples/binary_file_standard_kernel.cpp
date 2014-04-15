@@ -1,15 +1,3 @@
-/*
- * Function: main.c
- * Description: Provides an example of using the black-box fast multipole
- * method for computing fields in the simulation cell.
- * Usage: ./bbfmm N L n
- * ----------------------------------------------------------------------
- * 
- * Black-Box Fast Multipole Method (BBFMM)
- * William Fong
- * Stanford University
- *
- */
 
 #include "bbfmm3d.hpp"
 

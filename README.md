@@ -1,7 +1,5 @@
 #BBFMM3D  
 
-This is the first public release of the BBFMM3D library.  
-Date: Oct 18th, 2013
 
 
 ###1. INTRODUCTION
@@ -57,13 +55,14 @@ The basic usage of BBFMM3D with standard kernel is as follows:
     int Nf;         // Number of field points in simulation cell
     int m;
     int level;		// The number of levels in the hierarchy tree
+    int use_chebyshev // label of whether the computation will use chebyshev frame or uniform frame
     double eps;
     vector3 source[Ns];    // Position array for the source points
     vector3 field[Nf];     // Position array for the field points
     double q[Ns*dof.s*m];  // Source array	
     double *stress      =  new double[Nf*dof.f*m];// Field array (BBFMM calculation)
     …
-	kernel_LaplacianForce Atree(&dof,L,level, n, eps);
+	kernel_LaplacianForce Atree(&dof,L,level, n, eps, use_chebyshev);
     Atree.buildFMMTree();  // Build the fmm tree;
 	
 	/* The following can be repeated with different field, source, and q */
@@ -74,7 +73,7 @@ The basic usage of BBFMM3D with standard kernel is as follows:
     
 This example first build a FMM tree with these two lines:  
 
-	kernel_LaplacianForce Atree(&dof,L,level, n,  eps);
+	kernel_LaplacianForce Atree(&dof,L,level, n,  eps, use_chebyshev);
     Atree.buildFMMTree();  
 where kernel_LaplacianForce is a class of fmm tree using LaplacianForce kernel, the constructor takes 6 arguments:  
 
@@ -91,6 +90,10 @@ where kernel_LaplacianForce is a class of fmm tree using LaplacianForce kernel, 
 	Target accuracy; this is used to determine which
  singular values are kept after the SVD. cutoff.s and cutoff.f are computed
  using this epsilon.  
+* use_chebyshev(int):  
+	Label to indicate whether using chebyshev frame or uniform frame.  
+	use_chebyshev = 1: chebyshev interplation frame;  
+	use_chebyshev = 0: uniform frame.
  
 Once the tree is created, you can repeat matrix-vector product with different field, source and q(charge).(see **3.2.4**) The code shows an example using LapacianForce kernel:  
 
@@ -177,9 +180,9 @@ The basic usage is almost the same as **3.2.1** except that you have to define y
 	
 	class myKernel: public H2_3D_Tree {
 	public:
-    myKernel(doft* dof, double L, int level, int n, double epsilon):H2_3D_Tree(dof,L,level,n, epsilon){};
+    myKernel(doft* dof, double L, int level, int n, double epsilon, int use_chebyshev):H2_3D_Tree(dof,L,level,n, epsilon, use_chebyshev){};
     virtual void setHomogen(string& kernelType) {
-        homogen = 1;
+        homogen = -1;
         symmetry = 1;
         kernelType = "myKernel";
     }
@@ -200,7 +203,7 @@ The basic usage is almost the same as **3.2.1** except that you have to define y
 	...
 	{
 	…
-	myKernel Atree(&dof,L,level, n, eps);
+	myKernel Atree(&dof,L,level, n, eps, use_chebyshev);
     Atree.buildFMMTree();  // Build the fmm tree;
 	
 	/* The following can be repeated with different field, source, and q */
@@ -217,13 +220,12 @@ You also need to define information about kernel inside `setHomogen(string& kern
 * homogen:
 	The homogeneous property of kernel.(The cost and memory requirements of the pre-computation step can be reduced for the case of homogeneous kernels.)
 	* homogen = 0: if the kernel funtion is not homogeneous.
-	* homogen = m: if the kernel funtion is homogeneous of degree m, i.e. <img src="http://latex.codecogs.com/svg.latex? $K(\alpha x, \alpha y) = \alpha^m K(x,y)$." border="0"/>
-
-* symmetry:   
+	* homogen = m: if the kernel funtion is homogeneous of degree m, i.e. <img src="http://latex.codecogs.com/gif.latex? $K(\alpha x, \alpha y) = \alpha^m K(x,y)$." border="0"/>
+	* symmetry:   
 	The symmetry property of the kernel.
-	* symmetry = 0:  no symmetric property;
-	* symmetry = 1: symmetric kernel; 
-	* symmetry = -1: anti-symmetric kernel.
+	* symmetry = 0:  no symmetric property; 
+	* symmetry = 1: symmetric kernel; 		[K(x,y) = K(y,x)]
+	* symmetry = -1: anti-symmetric kernel.[K(x,y) = - K(y,x)]
 
 *  kernelType:   
 	The name of the kernel defined by user. The purpose of this is to label different files generated in the pre-computation step ( see **3.3** ) 
@@ -243,7 +245,7 @@ e.g.
 	{
 	…
 	/* Build FMM tree */
-	myKernel Atree(&dof,L,level, n, eps);
+	myKernel Atree(&dof,L,level, n, eps, use_chebyshev);
     Atree.buildFMMTree(); 
 	
 	/* The following can be repeated with different field, source, and q */
@@ -258,13 +260,15 @@ The basic usage is already domonstrated in **3.2.1** and **3.2.3**. Once you hav
 
 ####3.3 Pre-computation
 
-This power of this package is in the pre-computing part, which is much more computationally expensive than computing part. This package takes advantage of the fact that for a given kernel and number of chebyshev nodes, the precomputing part is the same, so for a fixed kernel and number of chebyshev nodes, it generates 3 files storing information of FMM tree in the folder /output. Everytime when we use the same kernel type and number of chebyshev nodes, we can directly read from the files, which would save a lot of time.
+The power of this package is in the pre-computing part, which is much more computationally expensive than computing part. This package takes advantage of the fact that for a given kernel and number of chebyshev nodes, the precomputing part is the same, so for a fixed kernel and number of chebyshev nodes, it generates 3 files storing information of FMM tree in the folder /output. Everytime when we use the same kernel type and number of chebyshev nodes, we can directly read from the files, which would save a lot of time.
+
+Note: it is true that sometimes with the pre-computation step, the code will be slower than direct calculation. But if the file already exists, then when doing more computations it will be faster than direct calculation. If you are using your own kernel, make sure to either change the kernelType or delete the existed file if you changed your kernel. 
 
 
 ####3.4 Test Interplation Error  
 To give the user an idea of how large the interplation error is, we have provided a routine of computing the interplation error. If you want to test the interplation error between a cluster A (of size length) and a cluster B, where B is in the interplation list of A, you can do the following:  
 
-	kernel_LaplacianForce testTree(&dof,1/pow(2,2),2, n, eps);
+	kernel_LaplacianForce testTree(&dof,1/pow(2,2),2, n, eps, use_chebyshev);
     double errtest = testInterplationErr(&testTree, 100, 100);
     
 The first line constructs a FMM tree, you can see **3.2.1** for more details of the constructor. Here we more explanations of the second and third arguments:  

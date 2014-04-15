@@ -1,6 +1,5 @@
 
 /*!	\file environment.hpp
-  Defines different types of kernel
 */
 #ifndef __environment_hpp__
 #define __environment_hpp__
