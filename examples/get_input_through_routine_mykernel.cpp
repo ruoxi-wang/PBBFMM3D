@@ -14,14 +14,14 @@
 #include "bbfmm3d.hpp"
 
 void SetMetaData(double& L, int& n, doft& dof, int& Ns, int& Nf, int& m, int& level,double& eps) {
-    L       = 1;    // Length of simulation cell (assumed to be a cube)
-    n       = 4;    // Number of Chebyshev nodes per dimension
+    L       = 90;    // Length of simulation cell (assumed to be a cube)
+    n       = 5;    // Number of Chebyshev nodes per dimension
     dof.f   = 1;
     dof.s   = 1;
     Ns      = 1000;  // Number of sources in simulation cell
     Nf      = 1000;  // Number of field points in simulation cell
-    m       = 2;
-    level   = 3;
+    m       = 1;
+    level   = 5;
     eps     = 1e-9;
 }
 
@@ -61,6 +61,7 @@ void SetSources(vector3 *field, int Nf, vector3 *source, int Ns, double *q, int 
 		field[i].y = frand(-0.5,0.5)*L;
 		field[i].z = frand(-0.5,0.5)*L;
     }
+
 }
 
 
@@ -70,7 +71,7 @@ class myKernel: public H2_3D_Tree {
 public:
     myKernel(doft* dof, double L, int level, int n,  double epsilon, int use_chebyshev):H2_3D_Tree(dof,L,level,n, epsilon, use_chebyshev){};
     virtual void setHomogen(string& kernelType) {
-        homogen = 0;
+        homogen = -1;
         symmetry = 1;
         kernelType = "myKernel";
     }
@@ -81,7 +82,8 @@ public:
         diff.x = sourcepos.x - fieldpos.x;
         diff.y = sourcepos.y - fieldpos.y;
         diff.z = sourcepos.z - fieldpos.z;
-        *K = 1. / sqrt(diff.x*diff.x + diff.y*diff.y + diff.z*diff.z);
+        double r = sqrt(diff.x*diff.x + diff.y*diff.y + diff.z*diff.z);
+        *K = 1/r;
     }
 };
 
@@ -104,8 +106,8 @@ int main(int argc, char *argv[]) {
     
     SetMetaData(L, n, dof, Ns, Nf, m, level, eps);
     
-    vector3 source[Ns];    // Position array for the source points
-    vector3 field[Nf];     // Position array for the field points
+    vector3* source = new vector3[Ns];    // Position array for the source points
+    vector3* field = new vector3[Nf];     // Position array for the field points
     double *q = new double[Ns*dof.s*m];  // Source array
     
     SetSources(field,Nf,source,Ns,q,m,&dof,L);
@@ -136,8 +138,8 @@ int main(int argc, char *argv[]) {
     double tFMM = t1 - t0;
     
     /*****      output result to binary file    ******/
-    string outputfilename = "../output/stress.bin";
-    write_Into_Binary_File(outputfilename, stress, m*Nf*dof.f);
+    // string outputfilename = "../output/stress.bin";
+    // write_Into_Binary_File(outputfilename, stress, m*Nf*dof.f);
     
     /**********************************************************/
     /*                                                        */
@@ -154,7 +156,7 @@ int main(int argc, char *argv[]) {
     cout << "FMM total time:   " << double(tFMM+tPre) / double(CLOCKS_PER_SEC)  << endl;
     cout << "Exact computing time: " << double(tExact) / double(CLOCKS_PER_SEC)  << endl;
     
-    // Compute the 2-norm error
+    //Compute the 2-norm error
     err = ComputeError(stress,stress_dir,Nf,&dof,m);
     cout << "Relative Error: "  << err << endl;
     
@@ -163,5 +165,7 @@ int main(int argc, char *argv[]) {
     delete []stress;
     delete []stress_dir;
     delete []q;
+    delete []source;
+    delete []field;
     return 0;
 }

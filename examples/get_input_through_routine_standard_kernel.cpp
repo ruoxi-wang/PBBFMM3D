@@ -1,17 +1,18 @@
 
 #include "bbfmm3d.hpp"
 #include<iostream>
+#include "read_stress.hpp"
 
 
 void SetMetaData(double& L, int& n, doft& dof, int& Ns, int& Nf, int& m, int& level, double& eps) {
     L       = 1;    // Length of simulation cell (assumed to be a cube)
-    n       = 4;    // Number of Chebyshev nodes per dimension
+    n       = 3;    // Number of Chebyshev nodes per dimension
     dof.f   = 1;
     dof.s   = 1;
-    Ns      = 5e4;  // Number of sources in simulation cell
-    Nf      = 5e4;  // Number of field points in simulation cell
+    Ns      = 1e4;  // Number of sources in simulation cell
+    Nf      = 1e4;  // Number of field points in simulation cell
     m       = 1;
-    level   = 3;
+    level   = 5;
     eps     = 1e-9;
 }
 
@@ -75,8 +76,8 @@ int main(int argc, char *argv[]) {
     SetMetaData(L, n, dof, Ns, Nf, m, level, eps);
     
     
-    vector3 source[Ns];    // Position array for the source points
-    vector3 field[Nf];     // Position array for the field points
+    vector3* source = new vector3[Ns];    // Position array for the source points
+    vector3* field = new vector3[Nf];     // Position array for the field points
     double q[Ns*dof.s*m];  // Source array
     
     SetSources(field,Nf,source,Ns,q,m,&dof,L);
@@ -95,14 +96,14 @@ int main(int argc, char *argv[]) {
     
     /*****      Pre Computation     ******/
     clock_t  t0 = clock();
-    kernel_OneOverR4 Atree(&dof,L,level, n, eps, use_chebyshev);
+    kernel_Gaussian Atree(&dof,L,level, n, eps, use_chebyshev);
     Atree.buildFMMTree();
     clock_t t1 = clock();
     double tPre = t1 - t0;
 
     /*****      FMM Computation     *******/
     t0 = clock();
-    H2_3D_Compute<kernel_OneOverR4> compute(&Atree, field, source, Ns, Nf, q,m, stress);
+    H2_3D_Compute<kernel_Gaussian> compute(&Atree, field, source, Ns, Nf, q,m, stress);
     t1 = clock();
     double tFMM = t1 - t0;
     
@@ -125,18 +126,24 @@ int main(int argc, char *argv[]) {
 
     
     /*****      output result to binary file    ******/
-    string outputfilename = "../output/stress.bin";
-    write_Into_Binary_File(outputfilename, stress, m*Nf*dof.f);
+    // string outputfilename = "../output/stress.bin";
+    // write_Into_Binary_File(outputfilename, stress, m*Nf*dof.f);
     
     /**********************************************************/
     /*                                                        */
     /*              Exact matrix vector product               */
     /*                                                        */
     /**********************************************************/
+    // string inputfilename = "../output/stress_dir05gaussian.bin";
+    // read_Stress(inputfilename, stress_dir, Nf*dof.f*m);
+
     t0 = clock();
     DirectCalc3D(&Atree, field, Nf, source, q, m, Ns, &dof,0 , L, stress_dir);
     t1 = clock();
     double tExact = t1 - t0;
+
+    string outputfilename = "../output/stress_dir06gaussian.bin";
+    write_Into_Binary_File(outputfilename, stress, m*Nf*dof.f);
     
     cout << "Pre-computation time: " << double(tPre) / double(CLOCKS_PER_SEC) << endl;
     cout << "FMM computing time:   " << double(tFMM) / double(CLOCKS_PER_SEC)  << endl;
@@ -151,6 +158,8 @@ int main(int argc, char *argv[]) {
     
     delete []stress;
     delete []stress_dir;
+    delete []source;
+    delete []field;
     //delete []stress1;
     return 0;
 }
