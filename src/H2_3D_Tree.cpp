@@ -215,53 +215,61 @@ void H2_3D_Tree::FMMSetup(nodeT **A, double *Tkz,  double *Kweights,
  * vectors U.
  */
 void H2_3D_Tree::FMMReadMatrices(double *K, double *U, double *VT, doft *cutoff, int n, doft *dof,char *Kmat, char *Umat, char *Vmat, int treeLevel, double homogen, int skipLevel, int use_chebyshev) {
-	int i = 0;
+    int i = 0;
     FILE *ptr_file;
     int preCompLevel = (treeLevel-2)* (!homogen) + 1;
-    
+     
     int Ksize;
-    if(use_chebyshev)
-        Ksize = cutoff->f * (316*cutoff->s); // Change: set cutoff
-	else
-	    Ksize = 316*(2*n-1)*(2*n-1)*(2*n-1)*dof->s*dof->f;
-
     int Usize = cutoff->f * dof->f *n*n*n;
     int Vsize = cutoff->s * dof->s *n*n*n;
-	
-    // Read in kernel interaction matrix K
-    ptr_file = fopen(Kmat,"rb");
-    fseek(ptr_file, (1*sizeof(int) + 1*sizeof(double)) *(!homogen) +
-          Ksize *skipLevel *sizeof(double), SEEK_SET);
-    i += fread(K, sizeof(double), Ksize *preCompLevel, ptr_file);
-    fclose(ptr_file);
-    
-    
-    if (use_chebyshev) {
-        // Read in matrix of singular vectors U
-        ptr_file = fopen(Umat,"rb");
-        fseek(ptr_file, 1*sizeof(int) + Usize *skipLevel *sizeof(double),
-              SEEK_SET);
-        i += fread(U, sizeof(double), Usize *preCompLevel, ptr_file);
-        fclose(ptr_file);
-        
-        // Read in matrix of singular vectors VT
-        ptr_file = fopen(Vmat,"rb");
-        fseek(ptr_file, 1*sizeof(int) + Vsize *skipLevel *sizeof(double),
-              SEEK_SET);
-        i += fread(VT, sizeof(double), Vsize *preCompLevel, ptr_file);
-        fclose(ptr_file);
-        
-        int totleNum = (Ksize + Usize + Vsize) *preCompLevel;
-        if (i != totleNum)
-            printf("fread error in FMMReadMatrices!\n Expected numer:%d,"
-                   "numbers read: %d\n", totleNum, i);
 
+    if(!use_chebyshev) { // TODO: non-homogeneous case
+
+      Ksize = 316*(2*n-1)*(2*n-1)*(2*n-1)*dof->s*dof->f;
+      //printf("Ksize: %d\n", Ksize);
+
+      
+      ptr_file = fopen(Kmat,"rb");
+      assert(ptr_file != NULL);
+     
+      i = fread(K, sizeof(double), Ksize, ptr_file);
+      assert(i == Ksize);
+      fclose(ptr_file);
+     
     } else {
-        int totleNum = Ksize *preCompLevel;
-        if (i != totleNum)
-            printf("fread error in FMMReadMatrices!\n Expected numer:%d,"
-                   "numbers read: %d\n", totleNum, i);
+
+      Ksize = cutoff->f * (316*cutoff->s);
+     
+      // Read in kernel interaction matrix K
+      ptr_file = fopen(Kmat,"rb");
+      fseek(ptr_file, (1*sizeof(int) + 1*sizeof(double)) *(!homogen) +
+        Ksize *skipLevel *sizeof(double), SEEK_SET);
+      i += fread(K, sizeof(double), Ksize *preCompLevel, ptr_file);
+      fclose(ptr_file);
+
+      // Read in matrix of singular vectors U
+      ptr_file = fopen(Umat,"rb");
+      fseek(ptr_file, 1*sizeof(int) + Usize *skipLevel *sizeof(double),
+        SEEK_SET);
+      i += fread(U, sizeof(double), Usize *preCompLevel, ptr_file);
+      fclose(ptr_file);
+    
+      // Read in matrix of singular vectors VT
+      ptr_file = fopen(Vmat,"rb");
+      fseek(ptr_file, 1*sizeof(int) + Vsize *skipLevel *sizeof(double),
+        SEEK_SET);
+      i += fread(VT, sizeof(double), Vsize *preCompLevel, ptr_file);
+      fclose(ptr_file);
+
+      int totleNum = (Ksize + Usize + Vsize) *preCompLevel;
+      if (i != totleNum) {
+         printf("fread error in FMMReadMatrices!\n Expected numer:%d,"
+            "numbers read: %d\n", totleNum, i);
+     assert(i == totleNum);
+      }
+     
     }
+
 }
 
 /*
