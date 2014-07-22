@@ -78,7 +78,7 @@ int main(int argc, char *argv[]) {
     
     vector3* source = new vector3[Ns];    // Position array for the source points
     vector3* field = new vector3[Nf];     // Position array for the field points
-    double q[Ns*dof.s*m];  // Source array
+    double *q = new double[Ns*dof.s*m];  // Source array
     
     SetSources(field,Nf,source,Ns,q,m,&dof,L);
     
@@ -109,9 +109,9 @@ int main(int argc, char *argv[]) {
     
     /*****   You can repeat this part with different source, field points and charges *****/
     
-    /*vector3 source1[Ns];    // Position array for the source points
-    vector3 field1[Nf];     // Position array for the field points
-    double q1[Ns*dof.s*m];  // Source array
+    /*vector3* source1 = new vector3[Ns];    // Position array for the source points
+    vector3* field1 = new vector3[Nf];     // Position array for the field points
+    double *q1 = new double[Ns*dof.s*m];  // Source array
      
     SetSources(field1,Nf,source1,Ns,q1,m,&dof,L);
      
@@ -160,6 +160,7 @@ int main(int argc, char *argv[]) {
     delete []stress_dir;
     delete []source;
     delete []field;
+    delete []q;
     //delete []stress1;
     return 0;
 }
