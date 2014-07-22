@@ -35,12 +35,11 @@ int main(int argc, char *argv[]) {
     int Nf;         // Number of field points in simulation cell
     int m;
     int level;
-    double alpha;
     double eps = 1e-9 ;
     int use_chebyshev = 1;
     
     string filenameMetadata = "./../input/metadata_test_mykernel.txt";
-    read_Metadata(filenameMetadata, L, n, dof, Ns, Nf, m, level,alpha);
+    read_Metadata(filenameMetadata, L, n, dof, Ns, Nf, m, level);
     vector3 *source = new vector3[Ns];    // Position array for the source points
     vector3 *field = new vector3[Nf];     // Position array for the field points
     double *q =  new double[Ns*dof.s*m];  // Source array
