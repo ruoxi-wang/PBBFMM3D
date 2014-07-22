@@ -1,16 +1,3 @@
-/*
- * Function: main.c
- * Description: Provides an example of using the black-box fast multipole
- * method for computing fields in the simulation cell.
- * Usage: ./bbfmm N L n
- * ----------------------------------------------------------------------
- * 
- * Black-Box Fast Multipole Method (BBFMM)
- * William Fong
- * Stanford University
- *
- */
-
 #include "bbfmm3d.hpp"
 
 void SetMetaData(double& L, int& n, doft& dof, int& Ns, int& Nf, int& m, int& level,double& eps) {
@@ -146,19 +133,19 @@ int main(int argc, char *argv[]) {
     /*              Exact matrix vector product               */
     /*                                                        */
     /**********************************************************/
-    // t0 = clock();
-    // DirectCalc3D(&Atree, field, Nf, source, q, m, Ns, &dof,0 , L, stress_dir);
-    // t1 = clock();
-    // double tExact = t1 - t0;
+    t0 = clock();
+    DirectCalc3D(&Atree, field, Nf, source, q, m, Ns, &dof,0 , L, stress_dir);
+    t1 = clock();
+    double tExact = t1 - t0;
     
     cout << "Pre-computation time: " << double(tPre) / double(CLOCKS_PER_SEC) << endl;
     cout << "FMM computing time:   " << double(tFMM) / double(CLOCKS_PER_SEC)  << endl;
     cout << "FMM total time:   " << double(tFMM+tPre) / double(CLOCKS_PER_SEC)  << endl;
-    // cout << "Exact computing time: " << double(tExact) / double(CLOCKS_PER_SEC)  << endl;
+    cout << "Exact computing time: " << double(tExact) / double(CLOCKS_PER_SEC)  << endl;
     
     //Compute the 2-norm error
-    // err = ComputeError(stress,stress_dir,Nf,&dof,m);
-    // cout << "Relative Error: "  << err << endl;
+    err = ComputeError(stress,stress_dir,Nf,&dof,m);
+    cout << "Relative Error: "  << err << endl;
     
     /*******            Clean Up        *******/
     

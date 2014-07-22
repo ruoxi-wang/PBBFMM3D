@@ -116,7 +116,7 @@ int main(int argc, char *argv[]) {
     SetSources(field1,Nf,source1,Ns,q1,m,&dof,L);
      
     double *stress1      =  new double[Nf*dof.f*m];// Field array (BBFMM calculation)
-    H2_3D_Compute<kernel_LaplacianForce> compute1(&Atree, field1, source1, Ns, Nf, q1,m, stress1);*/
+    H2_3D_Compute<kernel_Gaussian> compute1(&Atree, field1, source1, Ns, Nf, q1,m, stress1);*/
     
     /****   Test interplation error   *****/
     
