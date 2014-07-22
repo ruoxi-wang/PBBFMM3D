@@ -1,13 +1,6 @@
 #
 # File: Makefile
-# Description: Makefile for BBFMM
-# ------------------------------------------------------------------
-# Use "make" to compile the code.
-#
-# Black-Box Fast Multipole Method (BBFMM)
-# William Fong
-# Stanford University
-#
+# Description: Makefile for BBFMM3D
 #
 
 CC = g++
