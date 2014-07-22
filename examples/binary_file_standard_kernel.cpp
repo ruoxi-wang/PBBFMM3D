@@ -22,9 +22,9 @@ int main(int argc, char *argv[]) {
     
     string filenameMetadata = "./../input/metadata_test.txt";
     read_Metadata(filenameMetadata, L, n, dof, Ns, Nf, m, level,alpha);
-    vector3 source[Ns];    // Position array for the source points
-    vector3 field[Nf];     // Position array for the field points
-    double q[Ns*dof.s*m];  // Source array
+    vector3 *source = new vector3[Ns];    // Position array for the source points
+    vector3 *field = new vector3[Nf];     // Position array for the field points
+    double *q =  new double[Ns*dof.s*m];  // Source array
 
     string filenameField  = "./../input/field_test.bin";
     string filenameSource = "./../input/source_test.bin";
@@ -84,5 +84,8 @@ int main(int argc, char *argv[]) {
     
     delete []stress;
     delete []stress_dir;
+    delete []source;
+    delete []field;
+    delete []q;
     return 0;
 }
