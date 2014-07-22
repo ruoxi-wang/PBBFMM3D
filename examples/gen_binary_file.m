@@ -8,11 +8,11 @@ dof_f = 6;
 m = 1;    % Number of columns of the vector
 source = (rand(Ns,3) - 0.5) .* L; % Positions of source points
 field = (rand(Nf,3) - 0.5) .* L;  % Positions of field points
-q = rand(Ns * dof_s * m,1);       % charge
+q = rand(Ns * dof_s,m);       % charge
 
 source_binary = reshape(source,Ns * 3,1);
 field_binary = reshape(field,Nf * 3,1);
-
+q_binary = reshape(q,Ns * dof_s * m,1);
 fid = fopen('source1e4_test.bin', 'w');
 fwrite(fid, source_binary, 'double');
 fclose(fid);
