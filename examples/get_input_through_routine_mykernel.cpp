@@ -1,7 +1,7 @@
 #include "bbfmm3d.hpp"
 
 void SetMetaData(double& L, int& n, doft& dof, int& Ns, int& Nf, int& m, int& level,double& eps) {
-    L       = 90;    // Length of simulation cell (assumed to be a cube)
+    L       = 1;    // Length of simulation cell (assumed to be a cube)
     n       = 5;    // Number of Chebyshev nodes per dimension
     dof.f   = 1;
     dof.s   = 1;
@@ -52,15 +52,15 @@ void SetSources(vector3 *field, int Nf, vector3 *source, int Ns, double *q, int 
 }
 
 
-
-
 class myKernel: public H2_3D_Tree {
 public:
-    myKernel(doft* dof, double L, int level, int n,  double epsilon, int use_chebyshev):H2_3D_Tree(dof,L,level,n, epsilon, use_chebyshev){};
-    virtual void setHomogen(string& kernelType) {
+    myKernel(double L, int level, int n,  double epsilon, int use_chebyshev):H2_3D_Tree(L,level,n, epsilon, use_chebyshev){};
+    virtual void setHomogen(string& kernelType,doft *dof) {
         homogen = -1;
         symmetry = 1;
         kernelType = "myKernel";
+        dof->s = 1;
+        dof->f = 1;
     }
     virtual void EvaluateKernel(vector3 fieldpos, vector3 sourcepos,
                                 double *K, doft *dof) {
@@ -113,7 +113,7 @@ int main(int argc, char *argv[]) {
     
     /*****      Pre Computation     ******/
     clock_t  t0 = clock();
-    myKernel Atree(&dof,L,level, n, eps, use_chebyshev);
+    myKernel Atree(L,level, n, eps, use_chebyshev);
     Atree.buildFMMTree();
     clock_t t1 = clock();
     double tPre = t1 - t0;
@@ -134,7 +134,7 @@ int main(int argc, char *argv[]) {
     /*                                                        */
     /**********************************************************/
     t0 = clock();
-    DirectCalc3D(&Atree, field, Nf, source, q, m, Ns, &dof,0 , L, stress_dir);
+    DirectCalc3D(&Atree, field, Nf, source, q, m, Ns, 0 , L, stress_dir);
     t1 = clock();
     double tExact = t1 - t0;
     

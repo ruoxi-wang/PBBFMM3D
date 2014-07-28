@@ -96,14 +96,14 @@ int main(int argc, char *argv[]) {
     
     /*****      Pre Computation     ******/
     clock_t  t0 = clock();
-    kernel_Gaussian Atree(&dof,L,level, n, eps, use_chebyshev);
+    kernel_Laplacian Atree(L,level, n, eps, use_chebyshev);
     Atree.buildFMMTree();
     clock_t t1 = clock();
     double tPre = t1 - t0;
 
     /*****      FMM Computation     *******/
     t0 = clock();
-    H2_3D_Compute<kernel_Gaussian> compute(&Atree, field, source, Ns, Nf, q,m, stress);
+    H2_3D_Compute<kernel_Laplacian> compute(&Atree, field, source, Ns, Nf, q,m, stress);
     t1 = clock();
     double tFMM = t1 - t0;
     
@@ -138,7 +138,7 @@ int main(int argc, char *argv[]) {
     // read_Stress(inputfilename, stress_dir, Nf*dof.f*m);
 
     t0 = clock();
-    DirectCalc3D(&Atree, field, Nf, source, q, m, Ns, &dof,0 , L, stress_dir);
+    DirectCalc3D(&Atree, field, Nf, source, q, m, Ns, 0 , L, stress_dir);
     t1 = clock();
     double tExact = t1 - t0;
 
