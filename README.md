@@ -75,12 +75,10 @@ The basic usage of BBFMM3D with standard kernel is as follows:
     
 This example first build a FMM tree with these two lines:  
 
-	kernel_LaplacianForce Atree(&dof,L,level, n,  eps, use_chebyshev);
+	kernel_LaplacianForce Atree(L,level, n,  eps, use_chebyshev);
     Atree.buildFMMTree();  
 where kernel_LaplacianForce is a class of fmm tree using LaplacianForce kernel, the constructor takes 6 arguments:  
 
-* &dof(doft*):   
-	A pointer to degree of freedom. The FMM can handle cases where the input and output variables are vectors (not just scalars). This struct stores information about the size of the input vector (e.g., 1, 3, 9, etc) and the output vector (e.g., 1, 3, 6). This is different from the number of source and field points.
 * L(double):   
 	Length of simulation cell (assumed to be a cube).
 * level(int):  
@@ -166,6 +164,12 @@ Options of kernels:
 	![](http://latex.codecogs.com/gif.latex?K%28x%2Cy%29%20%3D%201%20/%20r%5E4)	
 * LAPLACIANFORCE kernel:  
 	usage: kernel_LaplacianForce  
+* STOKES kernel (tensor kernel)  
+	usage: kernel_Stokes  
+	kernel function:  
+	<img src="http://latex.codecogs.com/gif.latex?K(x,y) = \delta/|\vec r| + \vec r \vec r/|\vec r|^3" border="0"/>   
+	i.e. <img src="http://latex.codecogs.com/gif.latex?K_{ij} = \delta(i,j)/|\vec r| + r_ir_j/|\vec r|^3" border="0"/> 
+	where delta is an indicator function. vector r is the difference of x and y, see http://en.wikipedia.org/wiki/Stokes_flow#By_Green.27s_function:_the_Stokeslet for details.
 	
 	
     		
@@ -179,11 +183,13 @@ The basic usage is almost the same as **3.2.1** except that you have to define y
 	
 	class myKernel: public H2_3D_Tree {
 	public:
-    myKernel(doft* dof, double L, int level, int n, double epsilon, int use_chebyshev):H2_3D_Tree(dof,L,level,n, epsilon, use_chebyshev){};
-    virtual void setHomogen(string& kernelType) {
+    myKernel(double L, int level, int n, double epsilon, int use_chebyshev):H2_3D_Tree(L,level,n, epsilon, use_chebyshev){};
+    virtual void setHomogen(string& kernelType,doft* dof) {
         homogen = -1;
         symmetry = 1;
         kernelType = "myKernel";
+        dof->f = 1;
+        dof->s = 1;
     }
     virtual void EvaluateKernel(vector3 fieldpos, vector3 sourcepos,
                                 double *K, doft *dof) {
@@ -202,7 +208,7 @@ The basic usage is almost the same as **3.2.1** except that you have to define y
 	...
 	{
 	…
-	myKernel Atree(&dof,L,level, n, eps, use_chebyshev);
+	myKernel Atree(L,level, n, eps, use_chebyshev);
     Atree.buildFMMTree();  // Build the fmm tree;
 	
 	/* The following can be repeated with different field, source, and q */
@@ -210,7 +216,11 @@ The basic usage is almost the same as **3.2.1** except that you have to define y
     H2_3D_Compute<myKernel> compute(&Atree, field, source, Ns, Nf, q, m, stress);
     ...
     }
-
+    
+    
+* dof(doft*):   
+	A pointer to degree of freedom, which is the sizes of the small tensor matrix. The FMM can also handle case of tensor kernel(not only scalar kernel). This struct stores information about the size of tensor kernel. 
+	
 You can define your own kernel inside `EvaluateKernel(vector3 fieldpos, vector3 sourcepos,
                                 double *K, doft *dof)`, it takes field point, source point and degree of freedom(see **3.2.1**) as input, and pass the kernel value to K. 
                                                                 
@@ -244,7 +254,7 @@ e.g.
 	{
 	…
 	/* Build FMM tree */
-	myKernel Atree(&dof,L,level, n, eps, use_chebyshev);
+	myKernel Atree(L,level, n, eps, use_chebyshev);
     Atree.buildFMMTree(); 
 	
 	/* The following can be repeated with different field, source, and q */
@@ -361,7 +371,9 @@ This first argument is the filename for your output data. The second argument is
 
 We have provided several examples for BBFMM3D. Go to examples/, read through the files both must be self explanatory for the most part.
 You can use our examples with your own input.
-####5.1 Making changes to the examples for your own application
+####5.1 Example file for generating binary/text files.
+Both gen_binary_file.m and test.cpp shows how our test binary files are generated.
+####5.2 Making changes to the examples for your own application
 
 1. If you want to generate input through your own routine, and use the standard kernels:
 
