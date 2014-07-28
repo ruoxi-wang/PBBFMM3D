@@ -17,12 +17,15 @@
  */
 template<typename T>
 void DirectCalc3D(T* FMMtree, vector3 *field, int Nf, vector3 *source, double *q, int m,
-                  int Ns, doft *dof, int lpbc, double L,
+                  int Ns, int lpbc, double L,
                   double *phi) {
 
     int i, j, l1, l2, l3, begGlobal,k;
-    int dof2 = dof->f * dof->s;
+    doft* dof = new doft;
+    dof->f = FMMtree->dof->f;
+    dof->s = FMMtree->dof->s;
     int dof_f = dof->f, dof_s = dof->s;
+    int dof2 = dof_f * dof_s;
     vector3 sourcepos, cshift;
     char trans[] = "n";
     double alpha = 1;
