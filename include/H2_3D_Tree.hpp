@@ -14,7 +14,7 @@ using namespace std;
 class H2_3D_Tree{
 public:
     /*! Constructor of class H2_3D_Tree */
-    H2_3D_Tree(doft *dof, double L,  int level, int n, double
+    H2_3D_Tree( double L,  int level, int n, double
                epsilon, int use_chebyshev);
     doft* dof;
     double L;
@@ -96,7 +96,7 @@ public:
                                  double *K, doft *dof){};
     void EvaluateKernelMulti(vector3 fieldpos, vector3 sourcepos,
                         double *K, doft *dof, int m);
-    virtual void setHomogen(string& kernelType){};
+    virtual void setHomogen(string& kernelType, doft* dof){};
 
     /*! Destructor of class H2_3D_Tree */
     ~H2_3D_Tree();
