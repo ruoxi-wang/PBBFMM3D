@@ -6,8 +6,8 @@
 #include"bbfmm.h"
 #include"rfftw.h"
 
-H2_3D_Tree::H2_3D_Tree(doft *dof, double L, int level, int n,  double epsilon, int use_chebyshev){
-    this->dof   =   dof;
+H2_3D_Tree::H2_3D_Tree(double L, int level, int n,  double epsilon, int use_chebyshev){
+    this->dof = new doft;
     this->L     =   L;
     this->level =   level;
     this->n    =   n;
@@ -16,8 +16,6 @@ H2_3D_Tree::H2_3D_Tree(doft *dof, double L, int level, int n,  double epsilon, i
     alpha = 0;
     n2 = n*n;         // n2 = n^2
 	n3 = n2*n;       // n3 = n^3
-	dofn3_s = dof->s * n3;
-	dofn3_f = dof->f * n3;
     
     // Omega matrix
 	Kweights = (double *)malloc(n3 * sizeof(double));    
@@ -43,6 +41,8 @@ void H2_3D_Tree::buildFMMTree() {
 			 n,epsilon,dof,level,Kmat,
              Umat,Vmat,&Ucomp,&Vcomp, skipLevel, alpha, use_chebyshev,
              p_r2c);
+     dofn3_s = dof->s * n3;
+     dofn3_f = dof->f * n3;
     
     int preCompLevel = (level-2)* (!homogen) + 1;
     int Ksize = cutoff.f * (316*cutoff.s)* preCompLevel; // Change: set cutoff
@@ -69,7 +69,7 @@ void H2_3D_Tree::FMMSetup(nodeT **A, double *Tkz,  double *Kweights,
                           p_r2c) {
     
 	vector3 center;
-    setHomogen(kernelType);
+    setHomogen(kernelType,dof);
     homogen = -homogen;
     
     if (use_chebyshev) {
