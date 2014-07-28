@@ -534,7 +534,7 @@ void H2_3D_Compute<T>::DownwardPass(nodeT **A, vector3 *field, vector3 *source,
             }
         }
         
-        // Due to near field interactions
+        // Due to near field interactions (comment out if you want to substract P2P interactions)
         for (m=0;m<nneigh;m++) {
             B = (*A)->neighbors[m];
             sourcelist = B->sourcelist;
