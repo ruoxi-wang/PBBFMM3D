@@ -14,6 +14,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <iostream>
+#include <map>
 
 
 #endif //(__environment_hpp__)

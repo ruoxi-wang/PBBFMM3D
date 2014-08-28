@@ -284,8 +284,12 @@ void H2_3D_Tree::FMMReadMatrices(double *K, double *U, double *VT, doft *cutoff,
 
 void H2_3D_Tree::ComputeKernelSVD(double *Kweights, int n,double epsilon, doft *dof, char*Kmat, char *Umat, char *Vmat, int symm,  double *Ucomp,double *Vcomp, double alphaAdjust, double boxLen) {
     
-    static int callTime = -1;
-    callTime += 1; // callTime = 0 for the first time called
+    // static int callTime = -1;
+    // callTime += 1; // callTime = 0 for the first time called
+
+    static std::map<char*, int> callTime;
+    callTime.insert(std::make_pair(Umat, -1));
+    callTime[Umat] += 1; // callTime = 0 for the first time called
     
     int i, j, l, m, m1, k1, k2, k3, l1, l2, l3, z;
     int count, count1, count2, count3;
@@ -445,7 +449,7 @@ void H2_3D_Tree::ComputeKernelSVD(double *Kweights, int n,double epsilon, doft *
     FILE *ptr_file;
     
     double sumsqr, sum, epsqr;
-    if (callTime == 0) { // The first time called
+    if (callTime[Umat] == 0) { // The first time called
         
         // Determine the number of singular values to keep. We use epsilon for this.
         sumsqr = 0;
@@ -514,7 +518,7 @@ void H2_3D_Tree::ComputeKernelSVD(double *Kweights, int n,double epsilon, doft *
     dgesvd_(nosave,save,&rows_f,&dofn3_s,K0,&rows_f,Sigma,U1,&nosavedim,VT0,&dofn3_s,
             work,&lwork,&info);
     
-    if (callTime == 0) {
+    if (callTime[Umat] == 0) {
         
         // Determine the number of singular values to keep. We use
         // epsilon for this.

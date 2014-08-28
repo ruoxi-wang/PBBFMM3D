@@ -82,7 +82,7 @@ H2_3D_Compute<T>::H2_3D_Compute(T * FMMTree,vector3 * field, vector3 *source, in
                    FMMTree->homogen,&FMMTree->cutoff,FMMTree->n,FMMTree->dof,&stress[i*Nf*FMMTree->dof->f], FMMTree->use_chebyshev,FMMTree->p_r2c, FMMTree->p_c2r);
     }
     FMMTree->computed = true;
-
+    
 }
 
 /*
