@@ -4,7 +4,6 @@
 
 #include"H2_3D_Tree.hpp"
 #include"bbfmm.h"
-#include"rfftw.h"
 
 H2_3D_Tree::H2_3D_Tree(double L, int level, int n,  double epsilon, int use_chebyshev){
     this->dof = new doft;

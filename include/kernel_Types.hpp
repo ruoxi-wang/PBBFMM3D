@@ -11,8 +11,8 @@
 class kernel_Laplacian: public H2_3D_Tree {
 public:
     kernel_Laplacian(double L, int level, int n, double epsilon, int use_chebyshev):H2_3D_Tree(L,level,n, epsilon, use_chebyshev){};
-    virtual void setHomogen(string& kernelType,doft *dof);
-    virtual void EvaluateKernel(vector3 fieldpos, vector3 sourcepos,
+     void setHomogen(string& kernelType,doft *dof);
+     void EvaluateKernel(vector3 fieldpos, vector3 sourcepos,
                                 double *K, doft *dof);
 };
 
@@ -21,8 +21,8 @@ public:
 class kernel_LaplacianForce: public H2_3D_Tree {
 public:
     kernel_LaplacianForce(double L, int level, int n, double epsilon, int use_chebyshev):H2_3D_Tree(L,level,n, epsilon, use_chebyshev){};
-    virtual void setHomogen(string& kernelType,doft *dof);
-    virtual void EvaluateKernel(vector3 fieldpos, vector3 sourcepos,
+     void setHomogen(string& kernelType,doft *dof);
+     void EvaluateKernel(vector3 fieldpos, vector3 sourcepos,
                                 double *K, doft *dof);
 };
 
@@ -30,8 +30,8 @@ public:
 class kernel_OneOverR4: public H2_3D_Tree {
 public:
     kernel_OneOverR4(double L, int level, int n, double epsilon, int use_chebyshev):H2_3D_Tree(L,level,n, epsilon, use_chebyshev){};
-    virtual void setHomogen(string& kernelType,doft *dof);
-    virtual void EvaluateKernel(vector3 fieldpos, vector3 sourcepos,
+     void setHomogen(string& kernelType,doft *dof);
+     void EvaluateKernel(vector3 fieldpos, vector3 sourcepos,
                                 double *K, doft *dof);
 };
 
@@ -39,8 +39,8 @@ public:
 class kernel_Gaussian: public H2_3D_Tree {
 public:
     kernel_Gaussian(double L, int level, int n, double epsilon, int use_chebyshev):H2_3D_Tree(L,level,n,epsilon, use_chebyshev){};
-    virtual void setHomogen(string& kernelType,doft *dof);
-    virtual void EvaluateKernel(vector3 fieldpos, vector3 sourcepos,
+     void setHomogen(string& kernelType,doft *dof);
+     void EvaluateKernel(vector3 fieldpos, vector3 sourcepos,
                                 double *K, doft *dof);
 };
 
@@ -48,8 +48,8 @@ public:
 class kernel_Logarithm: public H2_3D_Tree {
 public:
     kernel_Logarithm(double L, int level, int n, double epsilon, int use_chebyshev):H2_3D_Tree(L,level,n,epsilon, use_chebyshev){};
-    virtual void setHomogen(string& kernelType,doft *dof);
-    virtual void EvaluateKernel(vector3 fieldpos, vector3 sourcepos,
+     void setHomogen(string& kernelType,doft *dof);
+     void EvaluateKernel(vector3 fieldpos, vector3 sourcepos,
                                 double *K, doft *dof);
 };
 
@@ -57,8 +57,8 @@ public:
 class kernel_OneOverR2: public H2_3D_Tree {
 public:
     kernel_OneOverR2(double L, int level, int n, double epsilon, int use_chebyshev):H2_3D_Tree(L,level,n,epsilon, use_chebyshev){};
-    virtual void setHomogen(string& kernelType,doft *dof);
-    virtual void EvaluateKernel(vector3 fieldpos, vector3 sourcepos,
+     void setHomogen(string& kernelType,doft *dof);
+     void EvaluateKernel(vector3 fieldpos, vector3 sourcepos,
                                 double *K, doft *dof);
 };
 
@@ -66,8 +66,8 @@ public:
 class kernel_Quadric: public H2_3D_Tree {
 public:
     kernel_Quadric(double L, int level, int n, double epsilon, int use_chebyshev):H2_3D_Tree(L,level,n,epsilon, use_chebyshev){};
-    virtual void setHomogen(string& kernelType,doft *dof);
-    virtual void EvaluateKernel(vector3 fieldpos, vector3 sourcepos,
+     void setHomogen(string& kernelType,doft *dof);
+     void EvaluateKernel(vector3 fieldpos, vector3 sourcepos,
                                 double *K, doft *dof);
 };
 
@@ -75,8 +75,8 @@ public:
 class kernel_InverseQuadric: public H2_3D_Tree {
 public:
     kernel_InverseQuadric(double L, int level, int n, double epsilon, int use_chebyshev):H2_3D_Tree(L,level,n,epsilon, use_chebyshev){};
-    virtual void setHomogen(string& kernelType,doft *dof);
-    virtual void EvaluateKernel(vector3 fieldpos, vector3 sourcepos,
+     void setHomogen(string& kernelType,doft *dof);
+     void EvaluateKernel(vector3 fieldpos, vector3 sourcepos,
                                 double *K, doft *dof);
 };
 
@@ -84,8 +84,8 @@ public:
 class kernel_ThinPlateSpline: public H2_3D_Tree {
 public:
     kernel_ThinPlateSpline(double L, int level, int n, double epsilon, int use_chebyshev):H2_3D_Tree(L,level,n,epsilon, use_chebyshev){};
-    virtual void setHomogen(string& kernelType,doft *dof);
-    virtual void EvaluateKernel(vector3 fieldpos, vector3 sourcepos,
+     void setHomogen(string& kernelType,doft *dof);
+     void EvaluateKernel(vector3 fieldpos, vector3 sourcepos,
                                 double *K, doft *dof);
 };
 
@@ -93,8 +93,8 @@ public:
 class kernel_Stokes: public H2_3D_Tree {
 public:
     kernel_Stokes(double L, int level, int n, double epsilon, int use_chebyshev):H2_3D_Tree(L,level,n, epsilon, use_chebyshev){};
-    virtual void setHomogen(string& kernelType,doft *dof);
-    virtual void EvaluateKernel(vector3 fieldpos, vector3 sourcepos,
+     void setHomogen(string& kernelType,doft *dof);
+     void EvaluateKernel(vector3 fieldpos, vector3 sourcepos,
                                 double *K, doft *dof);
 };
 

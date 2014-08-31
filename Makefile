@@ -6,7 +6,7 @@
 CC = g++
 LD = g++
 CFLAGS  = -c -Wall -fpermissive -mmacosx-version-min=10.5 -O3 -I ./include/ 
-LDPATH = -L/usr/lib 
+LDPATH = -L/usr/lib
 LDFLAGS = -llapack -lblas -lm -mmacosx-version-min=10.5 -lfftw -lrfftw 
 PFLAG  =
 SOURCES =  ./src/kernel_Types.cpp ./src/H2_3D_Tree.cpp ./src/read_metadata.cpp ./src/read_sources.cpp ./src/write_Into_Binary_File.cpp
