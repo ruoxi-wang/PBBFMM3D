@@ -5,7 +5,7 @@
 
 CC = g++
 LD = g++
-CFLAGS  = -c -Wall -fpermissive -O3 -I ./include/ 
+CFLAGS  = -c -Wall -O3 -I ./include/ 
 LDPATH = -L/usr/lib
 LDFLAGS = -llapack -lblas -lrfftw -lfftw -lm 
 PFLAG  =
