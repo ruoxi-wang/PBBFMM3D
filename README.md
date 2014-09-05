@@ -57,7 +57,7 @@ The basic usage of BBFMM3D with standard kernel is as follows:
     int Nf;         // Number of field points in simulation cell
     int m;
     int level;		// The number of levels in the hierarchy tree
-    int use_chebyshev // label of whether the computation will use chebyshev frame or uniform frame
+    int use_chebyshev // label of whether the computation will use chebyshev interpolation formula or uniform interpolation formula 
     double eps;
     vector3 *source = new vector3[Ns];    // Position array for the source points
     vector3 *field = new vector3[Nf];     // Position array for the field points
@@ -91,9 +91,9 @@ where kernel_LaplacianForce is a class of fmm tree using LaplacianForce kernel, 
  singular values are kept after the SVD. cutoff.s and cutoff.f are computed
  using this epsilon.  
 * use_chebyshev(int):  
-	Label to indicate whether using chebyshev frame or uniform frame.  
-	use_chebyshev = 1: chebyshev interplation frame;  
-	use_chebyshev = 0: uniform frame(where FFT is used, now it just supports homogenous kernel, non-homogeneous will be added)
+	Label to indicate whether using chebyshev interpolation formula or uniform interpolation formula.  
+	use_chebyshev = 1: chebyshev interplation formula;  
+	use_chebyshev = 0: uniform interpolation formula(where FFT is used, now it just supports homogenous kernel, non-homogeneous will be added)
  
 Once the tree is created, you can repeat matrix-vector product with different field, source and q(charge).(see **3.2.4**) The code shows an example using LapacianForce kernel:  
 
