@@ -77,7 +77,7 @@ This example first build a FMM tree with these two lines:
 
 	kernel_LaplacianForce Atree(L,level, n,  eps, use_chebyshev);
     Atree.buildFMMTree();  
-where kernel_LaplacianForce is a class of fmm tree using LaplacianForce kernel, the constructor takes 6 arguments:  
+where kernel_LaplacianForce is a class of fmm tree using LaplacianForce kernel, the constructor takes 5 arguments:  
 
 * L(double):   
 	Length of simulation cell (assumed to be a cube).
