@@ -59,12 +59,12 @@ The basic usage of BBFMM3D with standard kernel is as follows:
     int level;		// The number of levels in the hierarchy tree
     int use_chebyshev // label of whether the computation will use chebyshev frame or uniform frame
     double eps;
-    vector3 source[Ns];    // Position array for the source points
-    vector3 field[Nf];     // Position array for the field points
-    double q[Ns*dof.s*m];  // Source array	
+    vector3 *source = new vector3[Ns];    // Position array for the source points
+    vector3 *field = new vector3[Nf];     // Position array for the field points
+    double *q =  new double[Ns*dof.s*m];  // Source array
     double *stress      =  new double[Nf*dof.f*m];// Field array (BBFMM calculation)
     …
-	kernel_LaplacianForce Atree(&dof,L,level, n, eps, use_chebyshev);
+	kernel_LaplacianForce Atree(L,level, n, eps, use_chebyshev);
     Atree.buildFMMTree();  // Build the fmm tree;
 	
 	/* The following can be repeated with different field, source, and q */
@@ -93,7 +93,7 @@ where kernel_LaplacianForce is a class of fmm tree using LaplacianForce kernel, 
 * use_chebyshev(int):  
 	Label to indicate whether using chebyshev frame or uniform frame.  
 	use_chebyshev = 1: chebyshev interplation frame;  
-	use_chebyshev = 0: uniform frame.
+	use_chebyshev = 0: uniform frame(where FFT is used, now it just supports homogenous kernel, non-homogeneous will be added)
  
 Once the tree is created, you can repeat matrix-vector product with different field, source and q(charge).(see **3.2.4**) The code shows an example using LapacianForce kernel:  
 
@@ -219,12 +219,12 @@ The basic usage is almost the same as **3.2.1** except that you have to define y
     
     
 * dof(doft*):   
-	A pointer to degree of freedom, which is the sizes of the small tensor matrix. The FMM can also handle case of tensor kernel(not only scalar kernel). This struct stores information about the size of tensor kernel. 
+	A pointer to degree of freedom, which is the sizes of the small tensor matrix(tensor kernel). The FMM can also handle case of tensor kernel(not only scalar kernel). This struct stores information about the size of tensor kernel. 
 	
 You can define your own kernel inside `EvaluateKernel(vector3 fieldpos, vector3 sourcepos,
                                 double *K, doft *dof)`, it takes field point, source point and degree of freedom(see **3.2.1**) as input, and pass the kernel value to K. 
                                                                 
-You also need to define information about kernel inside `setHomogen(string& kernelType)` 
+You also need to define information about kernel inside `setHomogen(string& kernelType,doft* dof)` 
 
 * homogen:
 	The homogeneous property of kernel.(The cost and memory requirements of the pre-computation step can be reduced for the case of homogeneous kernels.)
