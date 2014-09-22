@@ -999,7 +999,6 @@ void H2_3D_Compute<T>::InteractionList(nodeT **A, int levels) {
 							diff.x = center1.x - center2.x;
 							diff.y = center1.y - center2.y;
 							diff.z = center1.z - center2.z;
-							dist = sqrt(diff.x*diff.x+diff.y*diff.y+diff.z*diff.z);
 							
                             int x = round(fabs(diff.x / cutoff));
                             int y = round(fabs(diff.y / cutoff));
