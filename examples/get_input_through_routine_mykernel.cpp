@@ -1,15 +1,15 @@
 #include "bbfmm3d.hpp"
 
 void SetMetaData(double& L, int& n, doft& dof, int& Ns, int& Nf, int& m, int& level,double& eps) {
-    L       = 1;    // Length of simulation cell (assumed to be a cube)
-    n       = 5;    // Number of Chebyshev nodes per dimension
+    L       = 1+1e-6;    // Length of simulation cell (assumed to be a cube)
+    n       = 4;    // Number of Chebyshev nodes per dimension
     dof.f   = 1;
     dof.s   = 1;
-    Ns      = 1000;  // Number of sources in simulation cell
-    Nf      = 1000;  // Number of field points in simulation cell
+    Ns      = 20000;  // Number of sources in simulation cell
+    Nf      = 200;  // Number of field points in simulation cell
     m       = 1;
-    level   = 5;
-    eps     = 1e-9;
+    level   = 4;
+    eps     = 1e-5;
 }
 
 /*
@@ -98,7 +98,8 @@ int main(int argc, char *argv[]) {
     double *q = new double[Ns*dof.s*m];  // Source array
     
     SetSources(field,Nf,source,Ns,q,m,&dof,L);
-    
+
+
     double err;
     double *stress      =  new double[Nf*dof.f*m];// Field array (BBFMM calculation)
     double *stress_dir  =  new double[Nf*dof.f*m];// Field array (direct O(N^2) calculation)

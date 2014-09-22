@@ -297,8 +297,6 @@ void H2_3D_Compute<T>::FMMInteraction(nodeT **A, double *E, int *Ktable, double 
     int dofn3_f  = dof->f * n3, dofn3_s = dof->s * n3;;
     double L     = (*A)->length;             // Length of cell
     double iL    = 1.0/L;                   // Inverse-length
-    cout << "L = " << L << endl;
-    cout << "iL = " << iL << endl;
     double scale = pow(iL,homogen);      // Scaling factor for SVD
     
     double beta=0;
@@ -355,13 +353,6 @@ void H2_3D_Compute<T>::FMMInteraction(nodeT **A, double *E, int *Ktable, double 
         R[0] = iL*(scenter.x-fcenter.x);
         R[1] = iL*(scenter.y-fcenter.y);
         R[2] = iL*(scenter.z-fcenter.z);
-        // cout << "R[0] = " << R[0] << endl;
-        // cout << "R[1] = " << R[1] << endl;
-        // cout << "R[2] = " << R[2] << endl;
-        // cout << "iL = "  << iL << endl;
-        // cout << "scenter.x-fcenter.x = " << scenter.x-fcenter.x << endl;
-        // cout << "scenter.y-fcenter.y = " << scenter.y-fcenter.y << endl;
-        // cout << "scenter.z-fcenter.z = " << scenter.z-fcenter.z << endl;
     
         // Determine the proxy values by pre-multiplying S by V^T
         
@@ -791,10 +782,6 @@ void H2_3D_Compute<T>::Moment2Local(int n, double *R, double *cell_mpCoeff, doub
     int k3 = (int)round(R[2]) + 3;
     int ninteract = Ktable[49*k1+7*k2+k3];
     if(k1 > 6 || k2 > 6 || k3 > 6 || k1 < 0 || k2 < 0 || k3 < 0){
-    cout << "k1 = " << k1 << endl;
-    cout << "k2 = " << k2 << endl;
-    cout << "k3 = " << k3 << endl;
-    cout << "ninteract = " << ninteract << endl;
 }
 
 
