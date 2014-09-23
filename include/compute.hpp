@@ -205,8 +205,9 @@ void H2_3D_Compute<T>::UpwardPass(nodeT **A, vector3 *source, double *q, double 
         
         int j, k, l1, l2, l3, l4, *sourcelist = (*A)->sourcelist;
         double sum, ihalfL = 2./(*A)->length;
-        vector3 sourcet[Ns], Ss[n*Ns], scenter = (*A)->center;
-        
+        vector3 scenter = (*A)->center;
+        vector3* Ss = (double *)malloc(n*Ns);
+        vector3* sourcet = (double *)malloc(Ns);
         // Map all of the source points to the box ([-1 1])^3
         for (j=0;j<Ns;j++) {
             k = sourcelist[j];
@@ -235,6 +236,15 @@ void H2_3D_Compute<T>::UpwardPass(nodeT **A, vector3 *source, double *q, double 
                     }
                 }
             }
+        }
+
+        if (Ss != NULL){
+            free(Ss);
+            Ss = NULL;
+        }
+        if (sourcet != NULL){
+            free(Ss);
+            Ss = NULL;
         }
 	}
     
