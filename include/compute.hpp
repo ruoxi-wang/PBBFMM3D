@@ -71,7 +71,7 @@ H2_3D_Compute<T>::H2_3D_Compute(T * FMMTree,vector3 * field, vector3 *source, in
     }
     this->FMMTree   =   FMMTree;
 
-    shift field and source pts s.t. they center around orign
+    // shift field and source pts s.t. they center around orign
     vector3 xmin;
     xmin.x = 1e32; xmin.y = 1e32; xmin.z = 1e32;
     vector3 xmax;
