@@ -28,6 +28,7 @@ typedef struct _vector3 {
 	double x,y,z;
 } vector3;
 
+
 // 3d segment
 typedef struct _point2 {
 	vector3 p1;

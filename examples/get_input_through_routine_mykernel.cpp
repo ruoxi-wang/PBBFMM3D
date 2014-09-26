@@ -40,10 +40,12 @@ void SetSources(vector3 *field, int Nf, vector3 *source, int Ns, double *q, int 
 		source[i].x = frand(-0.5,0.5)*L;
 		source[i].y = frand(-0.5,0.5)*L;
 		source[i].z = frand(-0.5,0.5)*L;
+
 	}
     
     // Randomly set field points
 	for (i=0;i<Nf;i++) {
+
 		field[i].x = frand(-0.5,0.5)*L;
 		field[i].y = frand(-0.5,0.5)*L;
 		field[i].z = frand(-0.5,0.5)*L;
@@ -144,7 +146,7 @@ int main(int argc, char *argv[]) {
     cout << "FMM total time:   " << double(tFMM+tPre) / double(CLOCKS_PER_SEC)  << endl;
     cout << "Exact computing time: " << double(tExact) / double(CLOCKS_PER_SEC)  << endl;
     
-    //Compute the 2-norm error
+    // Compute the 2-norm error
     err = ComputeError(stress,stress_dir,Nf,&dof,m);
     cout << "Relative Error: "  << err << endl;
     
