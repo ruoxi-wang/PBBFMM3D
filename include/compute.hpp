@@ -70,6 +70,52 @@ H2_3D_Compute<T>::H2_3D_Compute(T * FMMTree,vector3 * field, vector3 *source, in
 
     }
     this->FMMTree   =   FMMTree;
+
+    shift field and source pts s.t. they center around orign
+    vector3 xmin;
+    xmin.x = 1e32; xmin.y = 1e32; xmin.z = 1e32;
+    vector3 xmax;
+    xmax.x = -1e32; xmax.y = -1e32; xmax.z = -1e32;
+
+    for (int i = 0; i < Ns; ++i) {
+    xmin.x = min(xmin.x, source[i].x);
+    xmin.y = min(xmin.y, source[i].y);
+    xmin.z = min(xmin.z, source[i].z);
+
+    xmax.x = max(xmax.x, source[i].x);
+    xmax.y = max(xmax.y, source[i].y);
+    xmax.z = max(xmax.z, source[i].z);
+    }
+
+   
+    for (int i = 0; i < Nf; ++i) {
+    xmin.x = min(xmin.x, field[i].x);
+    xmin.y = min(xmin.y, field[i].y);
+    xmin.z = min(xmin.z, field[i].z);
+
+    xmax.x = max(xmax.x, field[i].x);
+    xmax.y = max(xmax.y, field[i].y);
+    xmax.z = max(xmax.z, field[i].z);
+    }
+
+    vector3 ctr;
+    ctr.x = 0.5 * (xmin.x + xmax.x);
+    ctr.y = 0.5 * (xmin.y + xmax.y);
+    ctr.z = 0.5 * (xmin.z + xmax.z);
+
+    for (int i = 0; i < Ns; ++i) {
+        source[i].x = source[i].x - ctr.x;
+        source[i].y = source[i].y - ctr.y;
+        source[i].z = source[i].z - ctr.z;
+    }
+
+    for (int i = 0; i < Nf; ++i) {
+        field[i].x = field[i].x - ctr.x;
+        field[i].y = field[i].y - ctr.y;
+        field[i].z = field[i].z - ctr.z;
+    }
+
+
     this-> field    =   field;
     this-> source   =   source;
     this-> Ns       =   Ns;
