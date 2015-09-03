@@ -167,8 +167,8 @@ Options of kernels:
 * STOKES kernel (tensor kernel)  
 	usage: kernel_Stokes  
 	kernel function:  
-	<img src="http://latex.codecogs.com/gif.latex?K(x,y) = \delta/|\vec r| + \vec r \vec r/|\vec r|^3" border="0"/>   
-	i.e. <img src="http://latex.codecogs.com/gif.latex?K_{ij} = \delta(i,j)/|\vec r| + r_ir_j/|\vec r|^3" border="0"/> 
+	<img src="http://www.sciweavers.org/upload/Tex2Img_1441257351/render.png" border="0"/>
+	i.e. <img src="http://www.sciweavers.org/upload/Tex2Img_1441257386/render.png" border="0"/> 
 	where delta is an indicator function. vector r is the difference of x and y, see http://en.wikipedia.org/wiki/Stokes_flow#By_Green.27s_function:_the_Stokeslet for details.
 	
 	
