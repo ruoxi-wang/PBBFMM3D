@@ -19,8 +19,10 @@ template<typename T>
 void DirectCalc3D(T* FMMtree, vector3 *field, int Nf, vector3 *source, double *q, int m,
                   int Ns, int lpbc, double L,
                   double *phi) {
-
-    int i, j, l1, l2, l3, begGlobal,k;
+    for (int i = 0; i < Nf * FMMtree->dof->f; i++) {
+        phi[i] = 0;
+    }
+    int i, j, l1, l2, l3, begGlobal, k;
     doft* dof = new doft;
     dof->f = FMMtree->dof->f;
     dof->s = FMMtree->dof->s;
@@ -82,7 +84,6 @@ void DirectCalc3D(T* FMMtree, vector3 *field, int Nf, vector3 *source, double *q
 
                 for (k = 0; k < m; k++) {
                     dgemv_(trans,&dof_f,&dof_s,&alpha,Kij,&dof_f,q+Ns*dof_s*k+dof_s*j,&incr,&alpha,phi+Nf*dof_f*k+dof_f*i,&incr);
-
                 }
 
             }
@@ -113,7 +114,6 @@ double ComputeError(double *phi, double *phidir, int Nf, doft *dof, int m) {
             sum2 += phidir[i*dof_f+j]*phidir[i*dof_f+j];
         }
     }
-    
     return sqrt(sum1)/sqrt(sum2);
 }
 
