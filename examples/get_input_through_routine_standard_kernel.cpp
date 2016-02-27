@@ -5,12 +5,12 @@
 void SetMetaData(double& L, int& n, doft& dof, int& Ns, int& Nf, int& m, int& level, double& eps) {
     L       = 1;    // Length of simulation cell (assumed to be a cube)
     n       = 3;    // Number of Chebyshev nodes per dimension
-    dof.f   = 3;
-    dof.s   = 3;
-    Ns      = 1e4;  // Number of sources in simulation cell
-    Nf      = 1e4;  // Number of field points in simulation cell
+    dof.f   = 1;
+    dof.s   = 1;
+    Ns      = 5000;  // Number of sources in simulation cell
+    Nf      = 5000;  // Number of field points in simulation cell
     m       = 1;
-    level   = 5;
+    level   = 2;
     eps     = 1e-9;
 }
 
@@ -94,14 +94,14 @@ int main(int argc, char *argv[]) {
     
     /*****      Pre Computation     ******/
     clock_t  t0 = clock();
-    kernel_Stokes Atree(L,level, n, eps, use_chebyshev);
+    kernel_Laplacian Atree(L,level, n, eps, use_chebyshev);
     Atree.buildFMMTree();
     clock_t t1 = clock();
     double tPre = t1 - t0;
 
     /*****      FMM Computation     *******/
     t0 = clock();
-    H2_3D_Compute<kernel_Stokes> compute(&Atree, field, source, Ns, Nf, q,m, stress);
+    H2_3D_Compute<kernel_Laplacian> compute(&Atree, field, source, Ns, Nf, q,m, stress);
     t1 = clock();
     double tFMM = t1 - t0;
     

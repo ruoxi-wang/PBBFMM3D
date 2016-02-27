@@ -18,7 +18,9 @@ public:
         diff.x = sourcepos.x - fieldpos.x;
         diff.y = sourcepos.y - fieldpos.y;
         diff.z = sourcepos.z - fieldpos.z;
-        *K = 1. / sqrt(diff.x*diff.x + diff.y*diff.y + diff.z*diff.z);
+        double r = sqrt(diff.x*diff.x + diff.y*diff.y + diff.z*diff.z);
+        *K = 1. / r;
+
     }
 };
 
@@ -40,19 +42,19 @@ int main(int argc, char *argv[]) {
     double eps = 1e-9 ;
     int use_chebyshev = 1;
     
-    string filenameMetadata = "./../input/metadata_test_mykernel.txt";
+    string filenameMetadata = "./../input/metadata_test.txt";
     read_Metadata(filenameMetadata, L, n, dof, Ns, Nf, m, level);
     vector3 *source = new vector3[Ns];    // Position array for the source points
     vector3 *field = new vector3[Nf];     // Position array for the field points
     double *q =  new double[Ns*dof.s*m];  // Source array
 
-    string filenameField  = "./../input/field_test_mykernel.bin";
-    string filenameSource = "./../input/source_test_mykernel.bin";
-    string filenameCharge = "./../input/charge_test_mykernel.bin";
+    string filenameField  = "./../input/field_test.bin";
+    string filenameSource = "./../input/source_test.bin";
+    string filenameCharge = "./../input/charge_test.bin";
     read_Sources(filenameField,field,Nf,filenameSource,source,Ns,filenameCharge,q,m,dof);
     double err;
     double *stress      =  new double[Nf*dof.f*m];// Field array (BBFMM calculation)
-    double *stress_dir  =  new double[Nf*dof.f*m];// Field array (direct O(N^2) calculation)
+    double *stress_dir  =  new double[Nf*dof.f*m]();// Field array (direct O(N^2) calculation)
 
 
     

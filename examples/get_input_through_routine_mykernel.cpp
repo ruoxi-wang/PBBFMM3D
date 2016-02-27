@@ -2,13 +2,13 @@
 
 void SetMetaData(double& L, int& n, doft& dof, int& Ns, int& Nf, int& m, int& level,double& eps) {
     L       = 1;    // Length of simulation cell (assumed to be a cube)
-    n       = 4;    // Number of Chebyshev nodes per dimension
+    n       = 3;    // Number of Chebyshev nodes per dimension
     dof.f   = 1;
     dof.s   = 1;
     Ns      = 1e4;  // Number of sources in simulation cell
     Nf      = 1e4;  // Number of field points in simulation cell
     m       = 1;
-    level   = 4;
+    level   = 3;
     eps     = 1e-5;
 }
 
