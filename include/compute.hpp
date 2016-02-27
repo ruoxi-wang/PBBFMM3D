@@ -377,7 +377,7 @@ void H2_3D_Compute<T>::FMMInteraction(nodeT **A, double *E, int *Ktable, double 
 	    matSizeDof = (int)round(pow(2*n-1,3)) *dof->f;
     
     
-    double *productfre;
+    double *productfre = NULL;
     if (! use_chebyshev) {
         productfre = (double*)calloc(matSizeDof, sizeof(double));
     }
@@ -1001,7 +1001,7 @@ void H2_3D_Compute<T>::InteractionList(nodeT **A, int levels) {
 	int i, j, k, ineigh, iinter, nneigh;
 	nodeT *B, *C;
 	vector3 center1, center2, cshift, diff;
-	double dist, cutoff;
+	double cutoff;
 	
 	assert((*A)->Nf > 0);
 	
