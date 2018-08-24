@@ -7,6 +7,8 @@ FFTW_ROOT = /usr/local
 FFTW_LIB = $(FFTW_ROOT)/lib
 FFTW_INCLUDE = $(FFTW_ROOT)/include
 
+MKLROOT = /opt/intel/mkl
+
 PYTHON_VERSION = 2.7
 PYTHON_INCLUDE = /usr/include/python$(PYTHON_VERSION)
 
@@ -23,7 +25,7 @@ SRC_COMPUTE = ../src/FMMCompute
 CFLAGS  = -Wall -O3 -I $(MKLROOT)/include -L $(MKLROOT)/lib/intel64 -I ../include -I/usr/include -I$(FFTW_INCLUDE)  \
 -I/usr/include/python2.7 -I/usr/include/x86_64-linux-gnu/python2.7 -fopenmp -fPIC
 LDPATH = -I $(MKLROOT)/include -L $(MKLROOT)/lib/intel64  -L/usr/lib -I/usr/include -I ../include \
- -L/usr/lib/python2.7/config-x86_64-linux-gnu 
+ -L/usr/lib/python2.7/config-x86_64-linux-gnu -I ../python
 LDFLAGS =  -L$(FFTW_LIB) -lfftw3 -Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_intel_lp64.a \
 ${MKLROOT}/lib/intel64/libmkl_sequential.a ${MKLROOT}/lib/intel64/libmkl_core.a -Wl,--end-group \
 -lpthread -lm -ldl -fopenmp -I/usr/include -lpython2.7 -lboost_python -lboost_system
@@ -50,4 +52,4 @@ $(SRC_COMPUTE).o: $(SRC_COMPUTE).cpp
 all: $(TARGET_TREE).so $(TARGET_COMPUTE).so
 
 clean:
-	rm -rf *.o *~ ../src/*.o ../examples/*.o
+	rm -rf *.o *~ ../src/*.o ../examples/*.o ../output/*bin

@@ -28,7 +28,6 @@ public:
     int level;
     nodeT** indexToLeafPointer;
     std::vector<nodeT*> cellPointers;
-    std::map<int, std::set<int> > my_neighbors;
     void FMMDistribute(nodeT **A, vector3 *field, vector3 *source, int Nf,
                        int Ns, int level);
     void FMMCompute(nodeT **A, vector3 *field, vector3 *source, double *charge,
@@ -37,7 +36,7 @@ public:
                     doft *cutoff, int n, doft *dof,double*stress, int use_chebyshev);
     void UpwardPass(nodeT **A, vector3 *source, double *q, double *Cweights, double *Tkz, double *VT, 
         double *Kweights, doft *cutoff, int n, doft *dof,  int homogen, int curTreeLevel, int use_chebyshev);
-    void FMMInteraction(double *E, int *Ktable, double *U, 
+    void FarFieldInteractions(double *E, int *Ktable, double *U, 
             double *VT, double *Kweights, int n, doft dof,
             doft cutoff, double homogen, int
             use_chebyshev);
@@ -177,7 +176,7 @@ void H2_3D_Compute<T>::FMMCompute(nodeT **A, vector3 *field, vector3 *source, do
     double t_upward = t1 - t0;
 
     t0 = omp_get_wtime(); 
-    FMMInteraction(K,Ktable,U,VT,Kweights,n,*dof,*cutoff,homogen, use_chebyshev);
+    FarFieldInteractions(K,Ktable,U,VT,Kweights,n,*dof,*cutoff,homogen, use_chebyshev);
     t1 = omp_get_wtime(); 
     double t_interaction = t1 - t0;
 
@@ -363,7 +362,7 @@ void H2_3D_Compute<T>::UpwardPass(nodeT **A, vector3 *source, double *q, double 
 
 
 template <typename T>
-void H2_3D_Compute<T>::FMMInteraction(double *E, int *Ktable, double *U, 
+void H2_3D_Compute<T>::FarFieldInteractions(double *E, int *Ktable, double *U, 
             double *VT, double *Kweights, int n, doft dof,
             doft cutoff, double homogen, int
             use_chebyshev) {
@@ -376,6 +375,8 @@ void H2_3D_Compute<T>::FMMInteraction(double *E, int *Ktable, double *U,
             assert(cell->Ns <= 0);
             continue;
         }
+
+        // TODO: might be cur_level is not the same as curTreeLevel
 
       int Ksize;
       int lvl_shift = (cell->cur_level>=2) ? cell->cur_level-2: 0;
@@ -552,6 +553,7 @@ void H2_3D_Compute<T>::NearFieldInteractions(vector3 *field, vector3 *source,
     for (leafAIndex = 0; leafAIndex < (int)pow(8,(this->level)); leafAIndex++) {
 
         nodeT* A = indexToLeafPointer[leafAIndex];
+        if (A->Nf <= 0 || A->Ns <= 0) {continue;}
 
         int Nf = A->Nf, i, m;
         int l, l1, l2, l3;
@@ -705,9 +707,6 @@ void H2_3D_Compute<T>::NearFieldInteractions(vector3 *field, vector3 *source,
 template <typename T>
 void H2_3D_Compute<T>::EvaluateField(vector3* field, vector3* source, int Nf,int Ns, doft *dof, double* Kcell) {
 	int i, j;
-    vector3 source1(0.1, 0.2, 0.3);
-    vector3 field1(-0.1, -0.2, -0.3);
-
 	for (j=0;j<Ns;j++) {
         vector3 cur_source = source[j];
 		for (i=0;i<Nf;i++) {
@@ -1026,9 +1025,6 @@ void H2_3D_Compute<T>::InteractionList(nodeT **A, int levels) {
 							if (!is_well_seperated) {
                                 int index = 9*(x+1) + 3*(y+1) + (z+1);
 								C->neighbors[index] = B->leaves[j]; // This is a neighbor
-                                if (B->leaves[j]->leafIndex >= 0 && C->leafIndex >= 0)
-                                    // C->neighbors_map.insert(B->leaves[j]->leafIndex);
-                                    my_neighbors[C->leafIndex].insert(B->leaves[j]->leafIndex);
                                 C->max_neighbor_Ns = max(C->max_neighbor_Ns, B->leaves[j]->Ns);
 								C->ineigh++;
 							} else {

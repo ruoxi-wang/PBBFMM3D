@@ -925,7 +925,7 @@ void H2_3D_Tree::BuildFMMHierarchy(nodeT **A, int level, int n, doft *cutoff, do
 	vector3 center, left, right;
 
   cellPointers.push_back(*A); // collect all pointers to cells
-  (*A)->cur_level = level; // can only work with a single thread
+  (*A)->cur_level = this->level - level; // can only work with a single thread
 
 	if (level > 0) {
         // Compute the length and center coordinate of the children cells
