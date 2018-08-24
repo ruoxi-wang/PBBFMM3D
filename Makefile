@@ -5,9 +5,11 @@
 
 CC = g++
 LD = g++
-CFLAGS  = -c -Wall -O3 -I ./include/ 
-LDPATH = -L/usr/lib
+CFLAGS  = -c -Wall -O3 -I ./include/ -I/usr/include 
+LDPATH = -L/usr/lib -I/usr/include -I ./include/
 LDFLAGS = -llapack -lblas -lrfftw -lfftw -lm 
+MFLAGS = -lm
+
 PFLAG  =
 SOURCES =  ./src/kernel_Types.cpp ./src/H2_3D_Tree.cpp ./src/read_metadata.cpp ./src/read_sources.cpp ./src/write_Into_Binary_File.cpp
 
@@ -15,19 +17,24 @@ SOURCEA = ./examples/get_input_through_routine_standard_kernel.cpp
 SOURCEB = ./examples/binary_file_standard_kernel.cpp
 SOURCEC = ./examples/get_input_through_routine_mykernel.cpp
 SOURCED = ./examples/binary_file_mykernel.cpp
-
+SOURCEHT = ./examples/3d_exp_cov.cpp
 
 OBJECTA=$(SOURCES:.cpp=.o) $(SOURCEA:.cpp=.o)
 OBJECTB=$(SOURCES:.cpp=.o) $(SOURCEB:.cpp=.o)
 OBJECTC=$(SOURCES:.cpp=.o) $(SOURCEC:.cpp=.o)
 OBJECTD=$(SOURCES:.cpp=.o) $(SOURCED:.cpp=.o)
+OBJECTHT=$(SOURCES:.cpp=.o) $(SOURCEHT:.cpp=.o)
 
 
 EXECUTABLEA= ./exec/get_input_through_routine_standard_kernel
 EXECUTABLEB=  ./exec/binary_file_standard_kernel
 EXECUTABLEC=  ./exec/get_input_through_routine_mykernel
 EXECUTABLED=  ./exec/binary_file_mykernel
+EXECUTABLEHT=  ./exec/3d_exp_cov
 
+tomography: $(SOURCES) $(SOURCEHT) $(EXECUTABLEHT) $(EXECUTABLEHT)
+$(EXECUTABLEHT): $(OBJECTHT)
+	$(CC)  $(OBJECTHT) $(LDPATH) $(LDFLAGS)  -o $@
 
 get_input_through_routine_standard_kernel: $(SOURCES) $(SOURCEA) $(EXECUTABLEA)
 $(EXECUTABLEA): $(OBJECTA)
