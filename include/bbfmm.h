@@ -22,6 +22,7 @@ extern "C" {
 #include <math.h>
 #include <string.h>
 #include <sys/time.h>
+#include <omp.h>
 
 
 // 3d point

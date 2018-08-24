@@ -127,7 +127,7 @@ void SetSources(vector3 *field, int Nf, vector3 *source, int Ns, double *q, int 
 //	fin.read((char*) q, m*Nf*dof->s*sizeof(double));
 //	fin.close();	
 //
-	read_xyz("../input/xcoord_small.txt",nx,"../input/xcoord_small.txt",ny,"../input/xcoord_small.txt",nz, source);
+	read_xyz("../input/xcoord.txt",nx,"../input/xcoord.txt",ny,"../input/xcoord.txt",nz, source);
 
 	for (i=0;i<Nf;i++) {
 		field[i].x = source[i].x;
@@ -182,7 +182,7 @@ int main(int argc, char *argv[]) {
 
 	vector3* source = new vector3[Ns]; // Position array for the source points
 	vector3* field = new vector3[Nf];  // Position array for the field points
-	double* q = new double[Ns*dof.s*m]; // Source array
+	double* q = new double[Ns*m]; // Source array
 
 	SetSources(field,Nf,source,Ns,q,m,&dof,L,nx,ny,nz);
 	//cout << "q[0] : " << q[0] << " q[end] : " << q[Ns-1] << endl;
@@ -190,8 +190,9 @@ int main(int argc, char *argv[]) {
 
 
 	//double err;
-    double *stress      =  new double[Nf*dof.f*m];// Field array (BBFMM calculation)
-	
+    double *stress      =  new double[Nf*m];// Field array (BBFMM calculation)
+    for (int i = 0; i < Nf*m; i++)
+    	stress[i] = 0; 				// TODO: check do we need to initialize
 	cout << "L                  : " << L << endl;
 	cout << "n (# chebyshev)    : " << n << endl;
 	cout << "Ns (=Nf)           : " << Ns << endl;
@@ -208,21 +209,24 @@ int main(int argc, char *argv[]) {
     /*                 Fast matrix vector product             */
     /*                                                        */
     /**********************************************************/
-    
+
     /*****      Pre Computation     ******/
-    clock_t  t0 = clock();
-    
+    // clock_t  t0 = clock();
+	double t0 = omp_get_wtime(); 
 	myKernel Atree(L,level, n, eps, use_chebyshev);
     Atree.buildFMMTree();
-	clock_t t1 = clock();
+	// clock_t t1 = clock();
+	double t1 = omp_get_wtime();
     
 	double tPre = t1 - t0;
 	cout << "Pre-computation finished" << endl;
     
     /*****      FMM Computation     *******/
-    t0 = clock();
+    // t0 = clock();
+    t0 = omp_get_wtime(); 
 	H2_3D_Compute<myKernel> compute(&Atree, field, source, Ns, Nf, q,m, stress);
-	t1 = clock();
+	// t1 = clock();
+	t1 = omp_get_wtime(); 
     double tFMM = t1 - t0;
 
 	cout << "Fmm computation finished" << endl;
@@ -254,9 +258,12 @@ int main(int argc, char *argv[]) {
     
     //skip Exact matrix vector product
 
-	cout << "Pre-computation time: " << double(tPre) / double(CLOCKS_PER_SEC) << endl;
-    cout << "FMM computing time:   " << double(tFMM) / double(CLOCKS_PER_SEC)  << endl;
-	cout << "FMM total time:   "  << double(tPre+tFMM) / double(CLOCKS_PER_SEC)  << endl;
+	// cout << "Pre-computation time: " << double(tPre) / double(CLOCKS_PER_SEC) << endl;
+ //    cout << "FMM computing time:   " << double(tFMM) / double(CLOCKS_PER_SEC)  << endl;
+	// cout << "FMM total time:   "  << double(tPre+tFMM) / double(CLOCKS_PER_SEC)  << endl;
+	cout << "Pre-computation time: " << tPre << endl;
+    cout << "FMM computing time:   " << tFMM  << endl;
+	cout << "FMM total time:   "  << tPre+tFMM  << endl;
     
     /*******            Clean Up        *******/
     

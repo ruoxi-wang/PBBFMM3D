@@ -6,8 +6,9 @@
 
 #include"bbfmm.h"
 #include "environment.hpp" 
-#include"kernel_Types.hpp"
+#include "kernel_Types.hpp"
 #include "rfftw.h"
+#include <omp.h>
 
 template <typename T>
 class H2_3D_Compute {
@@ -143,6 +144,7 @@ void H2_3D_Compute<T>::FMMDistribute(nodeT **A, vector3 *field, vector3 *source,
 	
     // Distribute all of the sources and field points to the appropriate cell
 	DistributeFieldPoints(A,field,fieldlist,level); 
+
 	
     // Construct the interaction list for the entire octree
 	(*A)->neighbors[0] = *A;
@@ -187,6 +189,7 @@ void H2_3D_Compute<T>::UpwardPass(nodeT **A, vector3 *source, double *q, double 
         }
 		
         // Determine which children cells contain sources
+        #pragma omp parallel for private(i)
 		for (i=0;i<8;i++) {
 		    if ((*A)->leaves[i]->Ns != 0) {
                 UpwardPass(&((*A)->leaves[i]),source,q,Cweights,Tkz,VT,
@@ -446,6 +449,7 @@ void H2_3D_Compute<T>::FMMInteraction(nodeT **A, double *E, int *Ktable, double 
     // Go to the next level
     //fmmLevel += 1;
     if ((*A)->leaves[0] != NULL) {
+        #pragma omp parallel for private(i)
         for (i=0;i<8;i++) {
             if ((*A)->leaves[i]->Nf != 0)
                 FMMInteraction(&((*A)->leaves[i]), E, Ktable, U, VT,
@@ -469,6 +473,7 @@ void H2_3D_Compute<T>::DownwardPass(nodeT **A, vector3 *field, vector3 *source,
         
 	    // Determine which children cells contain field points
         int i, l;
+        #pragma omp parallel for private(i)
 	    for (i=0;i<8;i++) {
             if ((*A)->leaves[i]->Nf != 0) {
                 
@@ -491,7 +496,7 @@ void H2_3D_Compute<T>::DownwardPass(nodeT **A, vector3 *field, vector3 *source,
 		}
 		
 	} else {
-        int Nf = (*A)->Nf, Ns, i, j, m, *fieldlist = (*A)->fieldlist;
+        int Nf = (*A)->Nf, i, j, m, *fieldlist = (*A)->fieldlist;
         int l, l1, l2, l3;
         double sum, prefac  = 2.0/(double)n;          // Prefactor for Sn
         if(!use_chebyshev)
@@ -501,10 +506,9 @@ void H2_3D_Compute<T>::DownwardPass(nodeT **A, vector3 *field, vector3 *source,
         
         double ihalfL = 2./(*A)->length, tmp1, tmp2;
         vector3 fieldt[Nf], Sf[n*Nf], fcenter = (*A)->center;
-        nodeT *B;
 
         // Obtain the positions of the field points
-        FMMTree->get_Location(*A, field); // TODO: make sure filed list is the same as source list.
+        FMMTree->get_Location(*A, field); 
         FMMTree->get_Charge(*A, q);
 
         // Map all field points to the box ([-1 1])^3
@@ -541,41 +545,37 @@ void H2_3D_Compute<T>::DownwardPass(nodeT **A, vector3 *field, vector3 *source,
         // Due to near field interactions (comment out if you want to substract P2P interactions)
         double *Kcell;
         Kcell = (double*) malloc(Nf * (*A)->max_neighbor_Ns * sizeof(double));
+        double alpha = 1, beta = 1;
+        int incr = 1;
 
-        for (m=0;m<27;m++) { // TODO: consider symmtric.  OpenMP
-            B = (*A)->neighbors[m];
-            if (B == NULL || (*A)->neighborComputed[m])
-                continue;
+        // #pragma omp parallel for 
+        for (m=0;m<27;m++) {
+            nodeT *B = (*A)->neighbors[m];
+            if (m != 13 && B && !(*A)->neighborComputed[m]) {
                         
-            Ns = B->Ns;
-            FMMTree->get_Location(B, source);
-            FMMTree->get_Charge(B, q);
-            
-            // compute submatrix
-            bool is_self_interaction = m == 13;
-            if (is_self_interaction){
-                EvaluateField_self((*A)->location,  Nf, dof, Kcell);
-            }
-            else{
+                int Ns = B->Ns;
+                FMMTree->get_Location(B, source);
+                FMMTree->get_Charge(B, q);
+                
+                // compute submatrix
                 EvaluateField((*A)->location,B->location, Nf,Ns,dof, Kcell);
-            }
+                char trans = 'n';
+                // apply matrix to vector
+                dgemv_(&trans, &Nf, &Ns, &alpha, Kcell, &Nf, B->charge, &incr, &beta, (*A)->nodePhi, &incr);
 
-
-            // apply matrix to vector
-            double alpha = 1, beta = 1;
-            int incr = 1;
-            char trans[] = "n";
-            dgemv_(trans, &Nf, &Ns, &alpha, Kcell, &Nf, B->charge, &incr, &beta, (*A)->nodePhi, &incr);
-
-            
-
-            // Do the symmtric part
-            if (!is_self_interaction) {
-                trans[0] = 't';
-                dgemv_(trans, &Nf, &Ns, &alpha, Kcell, &Nf, (*A)->charge, &incr, &beta,  B->nodePhi, &incr);
+                // Do the symmtric part
+                trans = 't';
+                dgemv_(&trans, &Nf, &Ns, &alpha, Kcell, &Nf, (*A)->charge, &incr, &beta,  B->nodePhi, &incr);
                 B->neighborComputed[26-m] = true; 
+
             }
         }
+
+
+        // self interaction
+        EvaluateField_self((*A)->location,  Nf, dof, Kcell);
+        char trans[] = "n";
+        dgemv_(trans, &Nf, &Nf, &alpha, Kcell, &Nf, (*A)->charge, &incr, &beta, (*A)->nodePhi, &incr);
 
         // transfer potential to the tree
         for (i=0;i<Nf;i++) { 
@@ -954,6 +954,7 @@ void H2_3D_Compute<T>::InteractionList(nodeT **A, int levels) {
 		
         // recursively build the interaction lists
 		if ((*A)->leaves[0] != NULL) {
+            #pragma omp parallel for private(k)
 			for (k=0;k<8;k++) {
 				if ((*A)->leaves[k]->Nf != 0) { /* Skip empty clusters */
 					InteractionList(&((*A)->leaves[k]),levels-1);
@@ -1107,9 +1108,10 @@ void H2_3D_Compute<T>::DistributeFieldPoints(nodeT **A, vector3 *field, int *fie
 			}
 			
             // Recursively distribute the points
+            #pragma omp parallel for private(j)
 			for (j=0;j<8;j++) {
-				F = fieldcell[j];
-				DistributeFieldPoints(&((*A)->leaves[j]),field,F,levels-1);
+				DistributeFieldPoints(&((*A)->leaves[j]),field,fieldcell[j],levels-1);
+            
 			}
 		}
 	} else if (levels == 0) {

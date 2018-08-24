@@ -122,11 +122,13 @@ void H2_3D_Tree::FMMSetup(nodeT **A, double *Tkz,  double *Kweights,
             
             
             double boxLenLevel = boxLen/4; // first FMM level
-            for (i=2; i<=treeLevel; i++, boxLenLevel/=2)
+            for (i=2; i<=treeLevel; i++) {
                 // FMM starts from the second level
                 ComputeKernelSVD(Kweights, n,  epsilon, dof,
                                  Kmat, Umat, Vmat, symmetry, Ucomp, Vcomp,alpha,
                                  boxLenLevel);
+                boxLenLevel /= 2;
+            }
         }
     }
     
@@ -162,11 +164,15 @@ void H2_3D_Tree::FMMSetup(nodeT **A, double *Tkz,  double *Kweights,
             
             int i;
             double boxLenLevel = boxLen/4; // first FMM level
-            for (i=2; i<=treeLevel; i++, boxLenLevel/=2)
+            // #pragma omp parallel for
+            for (i=2; i<=treeLevel; i++) {
                 // FMM starts from the second level
                 ComputeKernelSVD(Kweights, n, epsilon, dof,
                                  Kmat, Umat, Vmat, symmetry, Ucomp, Vcomp,alpha,
                                  boxLenLevel);
+                boxLenLevel /= 2;
+            }
+
         }
     }
     else
@@ -290,10 +296,9 @@ void H2_3D_Tree::ComputeKernelSVD(double *Kweights, int n,double epsilon, doft *
     callTime.insert(std::make_pair(Umat, -1));
     callTime[Umat] += 1; // callTime = 0 for the first time called
     
-    int i, j, l, m, m1, k1, k2, k3, l1, l2, l3, z;
-    int count, count1, count2, count3;
-    vector3 scenter, vtmp;
-    double sweight, fweight;
+    int i, j, l, m, k1, k2, k3, l1, l2, l3, z;
+    int count, count1;
+    vector3 vtmp;
     double pi = M_PI;
 	
     int n3 = n*n*n;            // n3 = n^3
@@ -304,13 +309,11 @@ void H2_3D_Tree::ComputeKernelSVD(double *Kweights, int n,double epsilon, doft *
     doft cutoff;
 	
     double *K0, *U0, *Sigma, *VT0;
-    double *nodes, *kernel, *work;
-    vector3 *fieldpos, *sourcepos;
+    double *nodes, *work;
+    vector3 *fieldpos;
 	
     K0 = (double *)malloc(316 * dof2n6 * sizeof(double));
-    kernel = (double *)malloc(dof2n6 * sizeof(double));
     fieldpos  = (vector3 *)malloc(n3 * sizeof(vector3));
-    sourcepos = (vector3 *)malloc(n3 * sizeof(vector3));
 	
     // 316 M2L operators
     double* Kcell[316];
@@ -342,26 +345,26 @@ void H2_3D_Tree::ComputeKernelSVD(double *Kweights, int n,double epsilon, doft *
     // Compute the kernel values for interactions with all 316 cells
     int countM2L=0;
     int symmNum = 158*(2-abs(symm)); // symmNum = 158, 316 for symm=pm1, 0
+
     int col, row, idx1, idx2;
-    for (count=0, k1=-3;k1<4;k1++) {
-        scenter.x = (double)k1;
+    #pragma omp parallel for private(k1, k2, k3, countM2L, l1, l2, l3) collapse(3)
+    for (k1=-3;k1<4;k1++) { // something is not correct here!!!!!!!
         for (k2=-3;k2<4;k2++) {
-            scenter.y = (double)k2;
             for (k3=-3;k3<4;k3++) {
-                scenter.z = (double)k3;
                 if (abs(k1) > 1 || abs(k2) > 1 || abs(k3) > 1) {
+                    countM2L = (k1+3)*49+(k2+3)* 7 + (k3+3) - (min(max(k1 + 1, 0), 3) *9 +  (-1 <= k1 && k1 <= 1 ? 1 : 0)* min(max(k2+1, 0), 3)*3 + (-1 <= k1 && k1 <= 1 ? 1 : 0)*(-1 <= k2 && k2 <= 1 ? 1 : 0) * min(max(k3 + 1, 0), 3));
                     if (countM2L < symmNum) {
-                        
+                        vector3 * sourcepos = (vector3 *)malloc(n3 * sizeof(vector3));
+                        double*   kernel = (double *)malloc(dof2n6 * sizeof(double));
+
                         // Compute the locations of the source points in the cell
-                        for (count1=0, l1=0;l1<n;l1++) {
-                            vtmp.x = (scenter.x + 0.5 * nodes[l1]) * boxLen;
+                        for (l1=0;l1<n;l1++) {
                             for (l2=0;l2<n;l2++) {
-                                vtmp.y = (scenter.y + 0.5 * nodes[l2]) * boxLen;
-                                for (l3=0; l3<n; l3++, count1++) {
-                                    sourcepos[count1].x = vtmp.x;
-                                    sourcepos[count1].y = vtmp.y;
-                                    sourcepos[count1].z = (scenter.z + 0.5
-                                                           * nodes[l3]) * boxLen;
+                                for (l3=0; l3<n; l3++) {
+                                    int ind = l3 + l2*n+l1*n*n;
+                                    sourcepos[ind].x = (k1 + 0.5 * nodes[l1]) * boxLen;
+                                    sourcepos[ind].y = (k2 + 0.5 * nodes[l2]) * boxLen;
+                                    sourcepos[ind].z = (k3 + 0.5 * nodes[l3]) * boxLen;
                                 }
                             }
                         }
@@ -369,21 +372,32 @@ void H2_3D_Tree::ComputeKernelSVD(double *Kweights, int n,double epsilon, doft *
                         // Compute the kernel at each of the field Chebyshev nodes
                         EvaluateKernelCell(fieldpos, sourcepos, n3, n3, dof,
                                             kernel);
+
                         
                         // Copy the kernel values to the appropriate location
-                        for (count1=0, count2=0, l1=0; l1<n3; l1++, count2++) {
-                            sweight = Kweights[count2];
-                            for (count3=0, m1=0; m1<n3; m1++, count3++) {
-                                fweight = Kweights[count3];
-                                for (m=0; m<1; m++, count++, count1++) {
-                                    K0[count] = kernel[count1]
-                                    /(sweight*fweight);
-                                }
+                        int globle_offset = countM2L * n3*n3;
+                        int local_offset;
+                        for (l1=0; l1<n3; l1++) {
+                            for (l2=0; l2<n3; l2++) {
+                                local_offset = l1*n3+l2;
+                                K0[globle_offset + local_offset] = kernel[local_offset]/( Kweights[l1]*Kweights[l2]);
                             }
                         }
-                        countM2L++;
+                        free(sourcepos);
+                        free(kernel);
                     }
-                    else { // Use kernel symmetry
+                }
+            }
+        }
+    }
+
+    countM2L=0;
+	for (k1=-3;k1<4;k1++)
+        for (k2=-3;k2<4;k2++)
+            for (k3=-3;k3<4;k3++) 
+                if (abs(k1) > 1 || abs(k2) > 1 || abs(k3) > 1) {
+                    if (countM2L >= symmNum) {
+                      
                         for (col=0; col<dofn3_s; col++)
                             for (row=0; row<dofn3_f; row++) {
                                 
@@ -392,16 +406,11 @@ void H2_3D_Tree::ComputeKernelSVD(double *Kweights, int n,double epsilon, doft *
                                 
                                 // symm=-1,1 for anti-symmetry and symmetry
                                 K0[idx2] = symm * K0[idx1];
-                                //K0[idx2] = K0[idx1];
                             }
-                        countM2L++;
                     }
+                    countM2L++;
                 }
-            }
-        }
-    }
-    
-	
+
     // Extract the submatrix for each of the 316 cells
     count = 0;
     for (i=0;i<316;i++) {
@@ -560,16 +569,16 @@ void H2_3D_Tree::ComputeKernelSVD(double *Kweights, int n,double epsilon, doft *
     
     /** Computing the compressed kernel using the orthonormal basis U and VT.
      **/
-    char *transa, *transb;
-    transa = new char[2];
-    transb = new char[2];
+    // char *transa, *transb;
+    // transa = new char[2];
+    // transb = new char[2];
     int cutoff2 = cutoff.f * cutoff.s;	
     double alpha=1, beta=0;
-    double *Ecell, *KV;
-    Ecell = (double *)malloc(cutoff2 * sizeof(double));	
-    KV    = (double *)malloc(dofn3_f * cutoff.s * sizeof(double));
+    double *Ecell;
+    Ecell = (double *)malloc(cutoff2 *316* sizeof(double));	
 	
     ptr_file = fopen(Kmat,"ab");
+    #pragma omp parallel for private(i)
     for (i=0;i<316;i++) {       
         
         /* Compute K V:
@@ -579,9 +588,10 @@ void H2_3D_Tree::ComputeKernelSVD(double *Kweights, int n,double epsilon, doft *
          * KV is dofn3_f  x cutoff.s
          * (Notice that VT is a submatrix of VT0)
          */
-        transa[0] = 'n';
-        transb[0] = 't';
-        dgemm_(transa, transb, &dofn3_f, &cutoff.s, &dofn3_s, &alpha, 
+        double* KV    = (double *)malloc(dofn3_f * cutoff.s * sizeof(double));
+        char transa = 'n', transb = 't';
+
+        dgemm_(&transa, &transb, &dofn3_f, &cutoff.s, &dofn3_s, &alpha, 
                Kcell[i], &dofn3_f, VT0, &dofn3_s, &beta, KV, &dofn3_f);
 		
         /* Compute U^T K V:
@@ -591,13 +601,15 @@ void H2_3D_Tree::ComputeKernelSVD(double *Kweights, int n,double epsilon, doft *
          * U^T K V is cutoff.f x cutoff.s
          * (Notice that U is a submatrix of U0)
          */
-        transa[0] = 't';
-        transb[0] = 'n';
-        dgemm_(transa, transb, &cutoff.f, &cutoff.s, &dofn3_f, &alpha, 
-               U0, &dofn3_f, KV, &dofn3_f, &beta, Ecell, &cutoff.f);
-		
-        fwrite(Ecell, sizeof(double), cutoff2, ptr_file);
+        transa = 't';
+        transb = 'n';
+        dgemm_(&transa, &transb, &cutoff.f, &cutoff.s, &dofn3_f, &alpha, 
+               U0, &dofn3_f, KV, &dofn3_f, &beta, Ecell+i*cutoff2, &cutoff.f);
+        free(KV);	
     }
+
+    fwrite(Ecell, sizeof(double), cutoff2*316, ptr_file);
+
     fclose(ptr_file);
     
     free(K0);
@@ -605,17 +617,13 @@ void H2_3D_Tree::ComputeKernelSVD(double *Kweights, int n,double epsilon, doft *
     free(U0);
     free(Sigma);
     free(nodes);
-    free(kernel);
     free(fieldpos);
-    free(sourcepos);
-    free(work);
-    free(KV);
     free(Ecell);
-    delete []transa;
-    delete []transb;
+    free(work);
 
-    for (z = 0; z < 316; ++z)
+    for (z = 0; z < 316; ++z) {
         free(Kcell[z]);
+    }
     
 }
 
@@ -1038,6 +1046,7 @@ void H2_3D_Tree::BuildFMMHierarchy(nodeT **A, int level, int n, doft *cutoff, do
 		}
 		
         // Recursively build octree if there is a subsequent level
+        #pragma omp parallel for private(i)
 		for (i=0;i<8;i++)
 			BuildFMMHierarchy(&((*A)->leaves[i]),level-1,n,cutoff,dof);
 	}
