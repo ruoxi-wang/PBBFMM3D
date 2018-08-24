@@ -602,14 +602,14 @@ void H2_3D_Compute<T>::NearFieldInteractions(vector3 *field, vector3 *source,
 
         double *Kcell;
         Kcell = (double*) malloc(Nf * A->max_neighbor_Ns * sizeof(double));
-        double* A_stress = (double*) malloc(Nf * sizeof(double));
-        double* B_stress = (double*) malloc(A->max_neighbor_Ns * 27 * sizeof(double));
+        double* A_stress = (double*) malloc(Nf * this->m * sizeof(double));
+        double* B_stress = (double*) malloc(A->max_neighbor_Ns * 27 * this->m * sizeof(double));
         std::vector<int> B_stress_pos(27);
 
-        for (int i = 0; i < Nf; i++) {
+        for (int i = 0; i < Nf * this->m; i++) {
             A_stress[i] = 0;
         }
-        for (int i = 0; i < A->max_neighbor_Ns * 27; i++) {
+        for (int i = 0; i < A->max_neighbor_Ns * 27 * this->m; i++) {
             B_stress[i] = 0;
         }
 
@@ -626,7 +626,7 @@ void H2_3D_Compute<T>::NearFieldInteractions(vector3 *field, vector3 *source,
                 int Ns = B->Ns;
                 FMMTree->get_Location(B, source);
                 FMMTree->get_Charge(B, q, this->Ns, this->m);
-                EvaluateField(A->location,B->location, Nf, Ns, dof, Kcell);
+                EvaluateField(A->location, B->location, Nf, Ns, dof, Kcell);
 
 
                 dgemm_(&transa, &transb, &Nf, &this->m, &Ns, &alpha, Kcell, &Nf, B->charge, &Ns, &beta, A_stress, &Nf);
@@ -634,7 +634,7 @@ void H2_3D_Compute<T>::NearFieldInteractions(vector3 *field, vector3 *source,
              
                 dgemm_(&transa, &transb, &Ns, &this->m, &Nf, &alpha, Kcell, &Nf, A->charge, &Nf, &beta, B_stress + offset, &Ns);
             
-                offset += Ns;
+                offset += Ns * this->m;
 
             } else if (B != NULL && m == 13) {
                // self interaction
@@ -649,8 +649,9 @@ void H2_3D_Compute<T>::NearFieldInteractions(vector3 *field, vector3 *source,
   
         #pragma omp critical (nearfield)  
         {
-            for (int i = 0; i < Nf; i++) {
-                A->nodePhi[i] += A_stress[i];
+            for (int l = 0; l < this->m; l++) {
+                for (int i = 0; i < Nf; i++)
+                    A->nodePhi[l*Nf+i] += A_stress[l*Nf+i];
             }
 
             offset = 0;
@@ -659,10 +660,11 @@ void H2_3D_Compute<T>::NearFieldInteractions(vector3 *field, vector3 *source,
                 if (B != NULL && m != 13) {
                     int indexB = B->leafIndex;
                     if (indexA > indexB) continue;
-                    for (int i = 0; i < B->Ns; i++) {
-                        B->nodePhi[i] += B_stress[offset + i];
-                    }
-                    offset += B->Ns;
+                    for (int l = 0; l < this->m; l++)
+                        for (int i = 0; i < B->Ns; i++) {
+                            B->nodePhi[l*B->Ns + i] += B_stress[offset + l*B->Ns + i];
+                        }
+                    offset += B->Ns * this->m;
                 }
             }
         }
