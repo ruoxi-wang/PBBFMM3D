@@ -116,10 +116,8 @@ H2_3D_Compute<T>::H2_3D_Compute(T * FMMTree,vector3 * field, vector3 *source, in
     this->m         =   m;
 
     FMMDistribute(&FMMTree->tree,field,source,Nf,Ns, FMMTree->level);
-    for (int i = 0; i < m; i++) { // TODO: pass in as matrix instead of vector.
-        FMMCompute(&FMMTree->tree,field,source,&charge[i*Ns],FMMTree->K,FMMTree->U,FMMTree->VT,FMMTree->Tkz,FMMTree->Ktable,FMMTree->Kweights,FMMTree->Cweights,
-                   FMMTree->homogen,&FMMTree->cutoff,FMMTree->n,FMMTree->dof,&stress[i*Nf], FMMTree->use_chebyshev);
-    }
+    FMMCompute(&FMMTree->tree,field,source,charge,FMMTree->K,FMMTree->U,FMMTree->VT,FMMTree->Tkz,FMMTree->Ktable,FMMTree->Kweights,FMMTree->Cweights,
+                   FMMTree->homogen,&FMMTree->cutoff,FMMTree->n,FMMTree->dof,stress, FMMTree->use_chebyshev);
     FMMTree->computed = true;
 }
 
@@ -531,7 +529,7 @@ void H2_3D_Compute<T>::DownwardPass(nodeT **A, vector3 *field, vector3 *source,
 
         // Obtain the positions of the field points
         FMMTree->get_Location(*A, field); 
-        FMMTree->get_Charge(*A, q);
+        FMMTree->get_Charge(*A, q, this->Ns, this->m);
 
         // Map all field points to the box ([-1 1])^3
         for (i=0;i<Nf;i++) {
@@ -558,7 +556,8 @@ void H2_3D_Compute<T>::DownwardPass(nodeT **A, vector3 *field, vector3 *source,
                     }
                 }
             }
-            (*A)->nodePhi[i] += sum;
+            for (int l = 0; l < this->m; l++)
+                (*A)->nodePhi[l*Nf+i] += sum;
         }
 
         
@@ -566,7 +565,6 @@ void H2_3D_Compute<T>::DownwardPass(nodeT **A, vector3 *field, vector3 *source,
         double *Kcell;
         Kcell = (double*) malloc(Nf * (*A)->max_neighbor_Ns * sizeof(double));
         double alpha = 1, beta = 1;
-        int incr = 1;
 
         for (m=0;m<27;m++) {
             nodeT *B = (*A)->neighbors[m];
@@ -574,17 +572,19 @@ void H2_3D_Compute<T>::DownwardPass(nodeT **A, vector3 *field, vector3 *source,
                         
                 int Ns = B->Ns;
                 FMMTree->get_Location(B, source);
-                FMMTree->get_Charge(B, q);
+                FMMTree->get_Charge(B, q, this->Ns, this->m);
                 
                 // compute submatrix
                 EvaluateField((*A)->location,B->location, Nf,Ns,dof, Kcell);
-                char trans = 'n';
+                char transa = 'n';
+                char transb = 'n';
+
                 // apply matrix to vector
-                dgemv_(&trans, &Nf, &Ns, &alpha, Kcell, &Nf, B->charge, &incr, &beta, (*A)->nodePhi, &incr);
+                dgemm_(&transa, &transb, &Nf, &this->m, &Ns, &alpha, Kcell, &Nf, B->charge, &Ns, &beta, (*A)->nodePhi, &Nf);
 
                 // Do the symmtric part
-                trans = 't';
-                dgemv_(&trans, &Nf, &Ns, &alpha, Kcell, &Nf, (*A)->charge, &incr, &beta,  B->nodePhi, &incr);
+                transa = 't';
+                dgemm_(&transa, &transb, &Ns, &this->m, &Nf, &alpha, Kcell, &Nf, (*A)->charge, &Nf, &beta, B->nodePhi, &Ns);
                 B->neighborComputed[26-m] = true; 
 
             }
@@ -593,14 +593,17 @@ void H2_3D_Compute<T>::DownwardPass(nodeT **A, vector3 *field, vector3 *source,
 
         // self interaction
         EvaluateField_self((*A)->location,  Nf, dof, Kcell);
-        char trans[] = "n";
-        dgemv_(trans, &Nf, &Nf, &alpha, Kcell, &Nf, (*A)->charge, &incr, &beta, (*A)->nodePhi, &incr);
+        char transa = 'n';
+        char transb = 'n';
+        dgemm_(&transa, &transb, &Nf, &this->m, &Nf, &alpha, Kcell, &Nf, (*A)->charge, &Nf, &beta, (*A)->nodePhi, &Nf);
+
 
         // transfer potential to the tree
-        for (i=0;i<Nf;i++) { 
-            j = fieldlist[i];
-            phi[j] += (*A)->nodePhi[i];
-        }
+        for (int l=0;l<this->m;l++)
+            for (i=0;i<Nf;i++) { 
+                j = fieldlist[i];
+                phi[l*this->Nf+j] += (*A)->nodePhi[l*Nf+i];
+            }
 
         free(Kcell);
         Kcell = NULL;
@@ -1028,7 +1031,7 @@ void H2_3D_Compute<T>::DistributeFieldPoints(nodeT **A, vector3 *field, int *fie
 		Nf = (*A)->Nf;
 		(*A)->fieldlist = (int *)malloc(Nf*sizeof(int));
         (*A)->sourcelist = (int *)malloc(Nf*sizeof(int));
-        (*A)->nodePhi = (double*)calloc(Nf,sizeof(double));
+        (*A)->nodePhi = (double*)calloc(Nf*this->m,sizeof(double)); 
 		F = (*A)->fieldlist;
         S = (*A)->sourcelist;
 		for (i=0;i<Nf;i++) {

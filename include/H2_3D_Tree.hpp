@@ -93,7 +93,7 @@ public:
     void EvaluateKernelMulti(vector3 fieldpos, vector3 sourcepos,
                         double *K, doft *dof, int m);
     virtual void setHomogen(string& kernelType, doft* dof){};
-    void get_Charge(nodeT*& node, double* q);
+    void get_Charge(nodeT*& node, double* q, int N, int m);
     void get_Location(nodeT*& node, vector3 *source);
     void compute_m2l_operator (int n, doft dof, int symmetry, char *Kmat, char *Umat, char *Vmat, double l, double alpha, double *Kweights, double epsilon, int grid_type, bool first_time_call);
     void StartPrecompute(double boxLen, int treeLevel, int n, doft dof, int homogen, int symmetry, char *Kmat, char *Umat, char *Vmat, double alpha, double *Kweights, double epsilon, int use_chebyshev);

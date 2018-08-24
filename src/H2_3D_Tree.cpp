@@ -1005,16 +1005,17 @@ void H2_3D_Tree::NewNode(nodeT **A, vector3 center, double L, int n) {
 }
 
 
-void H2_3D_Tree::get_Charge(nodeT*& node, double* q){
+void H2_3D_Tree::get_Charge(nodeT*& node, double* q, int N, int m){
     if(node->chargeComputed==true){
         return;
     }
     else{
         node->chargeComputed    =   true;
-        node->charge = (double*) malloc(node->Ns*sizeof(double));  // TODO: change 1 to m for later 
-        for(int k=0;k<node->Ns;++k){
-            node->charge[k] =  q[node->sourcelist[k]];
-        }
+        node->charge = (double*) malloc(node->Ns*m*sizeof(double) );  // TODO: change 1 to m for later 
+        for(int i=0;i<m;i++)
+            for(int k=0;k<node->Ns;++k){
+                node->charge[i*node->Ns+k] =  q[i*N+node->sourcelist[k]];
+            }
     }
 }
 

@@ -217,24 +217,28 @@ int main(int argc, char *argv[]) {
 	cout << "Fmm computation finished" << endl;
 
 	/***  check accuracy ***/
-	cout << "Checking accuracy of first 10 values" << endl;
+	int num_rows = 10;
+	cout << "Checking accuracy of first " << num_rows << " values" << endl;
 
-	double stress_exact[10];
-	for (int i = 0; i < 10; i++) {
-		stress_exact[i] = 0;
-		for (int j = 0; j < Ns; j++) {
-			double val = 0;
-			Atree.EvaluateKernel(field[i], source[j], &val, &dof);
-			stress_exact[i] += val * q[j];
+	double stress_exact[num_rows*m];
+	for (int k = 0; k < m; k++)
+		for (int i = 0; i < num_rows; i++) {
+			stress_exact[k*num_rows+i] = 0;
+			for (int j = 0; j < Ns; j++) {
+				double val = 0;
+				Atree.EvaluateKernel(field[i], source[j], &val, &dof);
+				stress_exact[k*num_rows+i] += val * q[k*Nf+j];
+			}
 		}
-	}
+
 	double diff = 0;
 	double sum_Ax = 0;
-	for (int i=0;i<10 ;i++ )
-	{	
-		diff += (stress[i] - stress_exact[i])*(stress[i] - stress_exact[i]); 
-		sum_Ax += stress_exact[i] * stress_exact[i];
-	}
+	for (int k = 0; k < m; k++)
+		for (int i=0;i<num_rows ;i++ )
+		{	
+			diff += (stress[k*Nf+i] - stress_exact[k*num_rows+i])*(stress[k*Nf+i] - stress_exact[k*num_rows+i]); 
+			sum_Ax += stress_exact[k*num_rows+i] * stress_exact[k*num_rows+i];
+		}
 	cout << "diff of first 10 values = " << sqrt(diff) / sqrt(sum_Ax) << endl;
 
 	/*****      output result to binary file    ******/
