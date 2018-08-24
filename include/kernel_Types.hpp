@@ -1,4 +1,3 @@
-
 /*!	\file kernel_Types.hpp
   Defines different types of kernel
 */

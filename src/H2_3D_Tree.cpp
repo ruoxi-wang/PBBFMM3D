@@ -21,10 +21,13 @@ H2_3D_Tree::H2_3D_Tree(double L, int level, int n,  double epsilon, int use_cheb
 	n3 = n2*n;      
     this->dof->s = 1;
     this->dof->f = 1;
+    this->indexToLeafPointer = (nodeT**) malloc(pow(8, this->level) * sizeof(nodeT*));
+
     // Omega matrix
 	Kweights = (double *)malloc(n3 * sizeof(double));    
 	// Chebyshev interpolation coefficients: Sn (page 8715)
 	Cweights = (double *)malloc(2 * n2 * sizeof(double));
+
     Tkz      = (double *)malloc(n2 * sizeof(double));
     K       =   NULL;
     U       =   NULL;
@@ -57,7 +60,7 @@ void H2_3D_Tree::buildFMMTree() {
 
     NewNode(&tree,center,L,n);
 
-    BuildFMMHierarchy(&tree,level,n,&cutoff,dof);
+    BuildFMMHierarchy(&tree,level,n,&cutoff,dof, 0, indexToLeafPointer, cellPointers);
 
 
 }
@@ -367,7 +370,7 @@ void H2_3D_Tree::ComputeKernelCheb(double *Kweights, int n,double epsilon, doft 
     // Extract the submatrix for each of the 316 cells
     count = 0;
     for (i=0;i<316;i++) {
-        for (j=0;j<dof2n6;j++) {
+        for (j=0;j<(int)dof2n6;j++) {
             Kcell[i][j] = K0[count];
             count++;
         }
@@ -916,11 +919,14 @@ void H2_3D_Tree::ComputeTk(double x, int n, double *vec) {
  * Builds the FMM hierarchy with l levels.
  *
  */
-void H2_3D_Tree::BuildFMMHierarchy(nodeT **A, int level, int n, doft *cutoff, doft *dof) {
+void H2_3D_Tree::BuildFMMHierarchy(nodeT **A, int level, int n, doft *cutoff, doft *dof, int leafIndex, nodeT** indexToLeafPointer, std::vector<nodeT*>& cellPointers) {
 	int i;
 	double L, halfL, quarterL;
 	vector3 center, left, right;
-	
+
+  cellPointers.push_back(*A); // collect all pointers to cells
+  (*A)->cur_level = level; // can only work with a single thread
+
 	if (level > 0) {
         // Compute the length and center coordinate of the children cells
 		L        = (*A)->length;
@@ -964,11 +970,15 @@ void H2_3D_Tree::BuildFMMHierarchy(nodeT **A, int level, int n, doft *cutoff, do
 			(*A)->leaves[i]->parent = *A;
 		}
 		
-        // Recursively build octree if there is a subsequent level
-        #pragma omp parallel for private(i)
+    // Recursively build octree if there is a subsequent level
+    // #pragma omp parallel for private(i)
 		for (i=0;i<8;i++)
-			BuildFMMHierarchy(&((*A)->leaves[i]),level-1,n,cutoff,dof);
-	}
+			BuildFMMHierarchy(&((*A)->leaves[i]),level-1,n,cutoff,dof,leafIndex + i*pow(8, level-1), indexToLeafPointer, cellPointers);
+	} else {
+    // handle index of leaves
+    (*A)->leafIndex = leafIndex;
+    indexToLeafPointer[leafIndex] = *A;
+  }
 }
 
 /*
@@ -982,7 +992,7 @@ void H2_3D_Tree::NewNode(nodeT **A, vector3 center, double L, int n) {
 
     // Initialization
 	*A = (nodeT *)malloc(sizeof(nodeT));
-	
+	(*A)->leafIndex = -1;
     // Initializes the child, neighbor, interaction, and parent nodes to NULL
 	int i;
 	for (i=0;i<8;i++)

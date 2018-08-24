@@ -13,9 +13,9 @@
 #ifndef _BBFMM_H
 #define _BBFMM_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+#include <set>
+#include <vector>
+
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -66,10 +66,15 @@ extern timeType Timer(void);
  * -------------------------------------------------------------------
  * This struct is a node in the octree.
  */
+
+
+
 typedef struct _nodeT {
 	struct _nodeT *leaves[8];
 	struct _nodeT *parent;
 	struct _nodeT *neighbors[27];
+	std::set<int> neighbors_map;
+	std::vector<int> test_vec;
 	struct _nodeT *interaction[189];
 	vector3 center, cshiftneigh[27], cshiftinter[189];
 	double length;
@@ -83,6 +88,8 @@ typedef struct _nodeT {
 	bool locationComputed;
 	int max_neighbor_Ns;
 	double* nodePhi;
+	int leafIndex;
+	int cur_level;
 } nodeT;
 
 
@@ -119,6 +126,11 @@ typedef struct _fmmparam {
 	char filesval[80];     // File name for storing singular values
 	char filesvec[80];     // File name for storing singular vectors
 } fmmparam;
+
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 // Declaration for LAPACK's LU decomposition routine
 extern void dgetrf_(int *M, int *N, double *A, int *lda, int *IPIV, int *INFO);

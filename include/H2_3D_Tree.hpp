@@ -51,6 +51,9 @@ public:
     
 	// All the cells in consideration: 7^3 = 343
 	int Ktable[343];
+
+    nodeT** indexToLeafPointer;
+    std::vector<nodeT*> cellPointers;
 	
     void buildFMMTree();
     void ComputeKernelCheb(double *Kweights, int n,double epsilon, doft *dof, char*Kmat, char *Umat, char *Vmat, int symm, double alphaAdjust, double boxLen,  bool first_time_call);
@@ -80,7 +83,7 @@ public:
              int n, doft dof, char *Kmat, char *Umat,
              char *Vmat, int treeLevel, double homogen,
              int use_chebyshev);
-    void BuildFMMHierarchy(nodeT **A, int level, int n, doft *cutoff, doft *dof);
+    void BuildFMMHierarchy(nodeT **A, int level, int n, doft *cutoff, doft *dof, int leafIndex, nodeT** indexToLeafPointer, std::vector<nodeT*>& cellPointers);
     
     void NewNode(nodeT **A, vector3 center, double L, int n);
     
