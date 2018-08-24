@@ -40,13 +40,13 @@ void H2_3D_Tree::buildFMMTree() {
 			 n,epsilon,dof,level,Kmat,
              Umat,Vmat,&Ucomp,&Vcomp, skipLevel, alpha, use_chebyshev,
              p_r2c);
-     dofn3_s = dof->s * n3;
-     dofn3_f = dof->f * n3;
+     dofn3_s = n3;
+     dofn3_f = n3;
     
     int preCompLevel = (level-2)* (!homogen) + 1;
     int Ksize = cutoff.f * (316*cutoff.s)* preCompLevel; // Change: set cutoff
-    int Usize = cutoff.f * dof->f *n*n*n* preCompLevel;
-    int Vsize = cutoff.s * dof->s *n*n*n* preCompLevel;
+    int Usize = cutoff.f * n*n*n* preCompLevel;
+    int Vsize = cutoff.s * n*n*n* preCompLevel;
     
     K  = (double *)malloc(Ksize *sizeof(double));
     U  = (double *)malloc(Usize *sizeof(double));
@@ -190,8 +190,8 @@ void H2_3D_Tree::FMMSetup(nodeT **A, double *Tkz,  double *Kweights,
         if ((f=fopen(Kmat,"rb")) == NULL) {
             ComputeKernelUniformGrid(Kweights,n,dof,Kmat,alpha, p_r2c);
         }
-        cutoff->f = dof->f*n*n*n;
-        cutoff->s = dof->s*n*n*n;
+        cutoff->f = n*n*n;
+        cutoff->s = n*n*n;
     }
     
 
@@ -219,12 +219,12 @@ void H2_3D_Tree::FMMReadMatrices(double *K, double *U, double *VT, doft *cutoff,
     int preCompLevel = (treeLevel-2)* (!homogen) + 1;
      
     int Ksize;
-    int Usize = cutoff->f * dof->f *n*n*n;
-    int Vsize = cutoff->s * dof->s *n*n*n;
+    int Usize = cutoff->f * n*n*n;
+    int Vsize = cutoff->s * n*n*n;
 
     if(!use_chebyshev) { // TODO: non-homogeneous case
 
-      Ksize = 316*(2*n-1)*(2*n-1)*(2*n-1)*dof->s*dof->f;
+      Ksize = 316*(2*n-1)*(2*n-1)*(2*n-1);
       //printf("Ksize: %d\n", Ksize);
 
       
@@ -297,8 +297,8 @@ void H2_3D_Tree::ComputeKernelSVD(double *Kweights, int n,double epsilon, doft *
     double pi = M_PI;
 	
     int n3 = n*n*n;            // n3 = n^3
-    int dofn3_s = dof->s * n3;
-    int dofn3_f = dof->f * n3;
+    int dofn3_s = n3;
+    int dofn3_f = n3;
     int dof2n6 = dofn3_s * dofn3_f; // Total size
     int Sigma_size;
     doft cutoff;
@@ -373,13 +373,11 @@ void H2_3D_Tree::ComputeKernelSVD(double *Kweights, int n,double epsilon, doft *
                         // Copy the kernel values to the appropriate location
                         for (count1=0, count2=0, l1=0; l1<n3; l1++, count2++) {
                             sweight = Kweights[count2];
-                            for (l=0;l<dof->s;l++) {
-                                for (count3=0, m1=0; m1<n3; m1++, count3++) {
-                                    fweight = Kweights[count3];
-                                    for (m=0; m<dof->f; m++, count++, count1++) {
-                                        K0[count] = kernel[count1]
-                                        /(sweight*fweight);
-                                    }
+                            for (count3=0, m1=0; m1<n3; m1++, count3++) {
+                                fweight = Kweights[count3];
+                                for (m=0; m<1; m++, count++, count1++) {
+                                    K0[count] = kernel[count1]
+                                    /(sweight*fweight);
                                 }
                             }
                         }
@@ -390,9 +388,7 @@ void H2_3D_Tree::ComputeKernelSVD(double *Kweights, int n,double epsilon, doft *
                             for (row=0; row<dofn3_f; row++) {
                                 
                                 idx1 = (315-countM2L)*dof2n6 + col*dofn3_f + row;
-                                idx2 = countM2L*dof2n6 +
-                                (row/dof->f*dof->s + col%dof->s) *dofn3_f
-                                + (col/dof->s*dof->f + row%dof->f);
+                                idx2 = countM2L*dof2n6 + row *dofn3_f + col;
                                 
                                 // symm=-1,1 for anti-symmetry and symmetry
                                 K0[idx2] = symm * K0[idx1];
@@ -431,8 +427,7 @@ void H2_3D_Tree::ComputeKernelSVD(double *Kweights, int n,double epsilon, doft *
      *             - PATH 1  (M much larger than N, JOBU='N')  - our case for K_thin
      *             - PATH 1t (N much larger than M, JOBVT='N') - our case for K_fat
      */
-    int max_dof = dof->s > dof->f ? dof->s : dof->f;
-    lwork = 5*max_dof*n3; // Change
+    lwork = 5*n3; // Change
     work  = (double *) malloc(lwork * sizeof(double));
 	
     int U0size;
@@ -634,13 +629,12 @@ void H2_3D_Tree::ComputeKernelUniformGrid(double *Kweights, int n, doft *dof, ch
     
     /* TODO: multi-dof, alphaAdjust */
     
-    int i, k1, k2, k3, l1, l2, l3;
+    int k1, k2, k3, l1, l2, l3;
     vector3 scenter;
     
-    int dof2 = dof->s * dof->f;
     //int dof2n6 = dof2 * (2*n-1)*(2*n-1)*(2*n-1); // Total size
     
-    double nodes[n], kernel[dof2];
+    double nodes[n];
     vector3 fieldpos, sourcepos;
     
     
@@ -650,15 +644,13 @@ void H2_3D_Tree::ComputeKernelUniformGrid(double *Kweights, int n, doft *dof, ch
     
     // creat FFT plan
     int vecSize = 2*n-1, reducedMatSize = pow(vecSize, 3);
-    int M2LSize = dof2 *reducedMatSize;
+    int M2LSize = reducedMatSize;
     double *MatM2L  = (double*)malloc(M2LSize *sizeof(double));
     double *freqMat = (double*)malloc(316 *M2LSize *sizeof(double));
     
     // Compute the kernel values for interactions with all 316 cells
-    int countM2L=0, count, count1;
-    int shift1, shift2, shiftGlo, shiftLoc;
-    int reducedMatSizeDofs = reducedMatSize *dof->s;
-    int f, s;
+    int countM2L=0, count;
+    int shiftGlo;
     
     for (k1=-3;k1<4;k1++) {
         scenter.x = (double)k1;
@@ -677,21 +669,7 @@ void H2_3D_Tree::ComputeKernelUniformGrid(double *Kweights, int n, doft *dof, ch
                             for (l3=0; l3<vecSize; l3++, count++) {
                                 GetPosition(n, l3, &fieldpos.z, &sourcepos.z, nodes);
                                 sourcepos.z += scenter.z;
-                                
-                                EvaluateKernel(fieldpos,sourcepos,kernel,dof);
-                                
-                                // kernel[f x s] in column major
-                                // MatM2L[(2n-1)^3 x s x f] in column
-                                // major
-                                count1 = 0;
-                                shift1 = count;
-                                for (s=0; s < dof->s; s++) {
-                                    for(f=0, shift2=0; f < dof->f; f++) {
-                                        MatM2L[shift1 + shift2] =  kernel[count1++];
-                                        shift2 += reducedMatSizeDofs;
-                                    }
-                                    shift1 += reducedMatSize;
-                                }
+                                EvaluateKernel(fieldpos,sourcepos,&MatM2L[count],dof);                                       
                             }
                         }
                     }
@@ -699,13 +677,8 @@ void H2_3D_Tree::ComputeKernelUniformGrid(double *Kweights, int n, doft *dof, ch
                     // FFT
                     shiftGlo = countM2L *M2LSize;
                     
-                    for (i=0, shiftLoc=0; i<dof2; i++) {
-                        rfftw_one(p_r2c, MatM2L + shiftLoc, freqMat +
-                                  shiftGlo + shiftLoc);
-                        shiftLoc += reducedMatSize;
-                    }
-                    
-                
+                    rfftw_one(p_r2c, MatM2L, freqMat +
+                                  shiftGlo);
                     
                     countM2L++;
                 }
@@ -762,31 +735,12 @@ void H2_3D_Tree::GetPosition(int n, int idx, double *fieldpos, double *sourcepos
  */
 void H2_3D_Tree::EvaluateKernelCell(vector3 *field, vector3 *source, int Nf,
                         int Ns, doft *dof, double *kernel) {
-	int i, j, k, l, count, count_kernel;
-	int dof_f = dof->f;
-	int dof_s = dof->s;
-	int dofNf = dof->f * Nf;
-	int dof2  = dof->f * dof->s;
-	double * Kij;
-	
-	int LDA_kernel = dofNf;
-	
-	Kij = (double*) malloc(dof2 * sizeof(double));
-	
+	int i, j;	
 	for (j=0;j<Ns;j++) {
 		for (i=0;i<Nf;i++) {
-            EvaluateKernel(field[i],source[j],Kij, dof);
-			
-			count_kernel = dof_f * i + LDA_kernel * dof_s * j;
-			count = 0;
-			for (k=0;k<dof_s;k++)
-				for (l=0;l<dof_f;l++, count++)
-                /* Column-major storage */
-					kernel[count_kernel + k * LDA_kernel + l] = Kij[count];
+            EvaluateKernel(field[i],source[j],&kernel[i + Nf * j], dof);
 		}
 	}
-    
-	free(Kij);
 }
 
 /*
@@ -963,12 +917,13 @@ void H2_3D_Tree::ComputeSn(vector3 *point, double *Tkz, int n, int N, vector3 *S
                 for (j=n-1;j>0;j--)
                     d[j] = 2.0*x*d[j+1] - d[j+2] + vec[j];
                 Sn[k+i].y = x*d[1] - d[2] + 0.5*vec[0];
-                
+
                 x = point[i].z;
                 d[n] = d[n+1] = 0.;
                 for (j=n-1;j>0;j--)
                     d[j] = 2.0*x*d[j+1] - d[j+2] + vec[j];
                 Sn[k+i].z = x*d[1] - d[2] + 0.5*vec[0];
+
             }
         }
 	}
@@ -1104,6 +1059,10 @@ void H2_3D_Tree::NewNode(nodeT **A, vector3 center, double L, int n) {
 	int i;
 	for (i=0;i<8;i++)
 		(*A)->leaves[i] = NULL;
+    for (i=0;i<27;i++) {
+        (*A)->neighborComputed[i] = false;
+        (*A)->neighbors[i] = NULL;
+    }
 	(*A)->parent = NULL;
 	
     (*A)->fieldval  = NULL;
@@ -1118,6 +1077,12 @@ void H2_3D_Tree::NewNode(nodeT **A, vector3 center, double L, int n) {
 	(*A)->Ns         = 0;
 	(*A)->ineigh     = 0;
 	(*A)->iinter     = 0;
+    (*A)->chargeComputed = false;
+    (*A)->locationComputed = false;
+    (*A)->location = NULL;
+    (*A)->charge = NULL;
+    (*A)->max_neighbor_Ns = 0;
+    (*A)->nodePhi = NULL;
 }
 
 /*void H2_3D_Tree::get_Compression_Rate(double* Ucomp, double* Vcomp) {
@@ -1133,6 +1098,37 @@ void H2_3D_Tree::NewNode(nodeT **A, vector3 center, double L, int n) {
     EvaluateKernel(fieldpos, sourcepos, K, dof_kernel);
 }*/
 
+
+void H2_3D_Tree::get_Charge(nodeT*& node, double* q){
+    if(node->chargeComputed==true){
+        return;
+    }
+    else{
+        node->chargeComputed    =   true;
+        node->charge = (double*) malloc(node->Ns*sizeof(double));  // TODO: change 1 to m for later 
+        for(int k=0;k<node->Ns;++k){
+            node->charge[k] =  q[node->sourcelist[k]];
+        }
+    }
+}
+
+void H2_3D_Tree::get_Location(nodeT*& node, vector3 *source){
+    if(node->locationComputed==true){
+        return;
+    }
+    else{
+        node->locationComputed    =   true;
+        node->location = (vector3*) malloc(node->Ns * sizeof(vector3));
+        int l;
+        for(int k=0;k<node->Ns;++k){
+            l = node->sourcelist[k];
+            node->location[k].x = source[l].x;
+            node->location[k].y = source[l].y;
+            node->location[k].z = source[l].z;
+        }
+    }
+}
+
 void H2_3D_Tree::FreeNode(nodeT *A) {
 	int i;
 	
@@ -1141,7 +1137,7 @@ void H2_3D_Tree::FreeNode(nodeT *A) {
 		if (A->leaves[i] != NULL) {
 			FreeNode(A->leaves[i]);
 		}
-	}
+    }
 	
     // Free the arrays for the field and source values
 	if (A->fieldval != NULL)
@@ -1157,6 +1153,14 @@ void H2_3D_Tree::FreeNode(nodeT *A) {
         free(A->fieldlist), A->fieldlist=NULL;
 	if (A->sourcelist != NULL)
         free(A->sourcelist), A->sourcelist=NULL;
+    if (A->location != NULL)
+        free(A->location), A->location=NULL;
+    if (A->charge != NULL)
+        free(A->charge), A->charge=NULL;
+    if (A->fieldlist != NULL)
+        free(A->fieldlist), A->fieldlist=NULL;
+    if (A->nodePhi != NULL)
+        free(A->nodePhi), A->nodePhi=NULL;
 	
     // Last free the node
 	free(A);

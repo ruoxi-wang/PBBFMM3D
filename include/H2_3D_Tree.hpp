@@ -97,6 +97,8 @@ public:
     void EvaluateKernelMulti(vector3 fieldpos, vector3 sourcepos,
                         double *K, doft *dof, int m);
     virtual void setHomogen(string& kernelType, doft* dof){};
+    void get_Charge(nodeT*& node, double* q);
+    void get_Location(nodeT*& node, vector3 *source);
 
     /*! Destructor of class H2_3D_Tree */
     ~H2_3D_Tree();

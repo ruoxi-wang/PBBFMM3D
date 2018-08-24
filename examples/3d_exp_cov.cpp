@@ -127,7 +127,7 @@ void SetSources(vector3 *field, int Nf, vector3 *source, int Ns, double *q, int 
 //	fin.read((char*) q, m*Nf*dof->s*sizeof(double));
 //	fin.close();	
 //
-	read_xyz("../input/xcoord.txt",nx,"../input/ycoord.txt",ny,"../input/zcoord.txt",nz, source);
+	read_xyz("../input/xcoord_small.txt",nx,"../input/xcoord_small.txt",ny,"../input/xcoord_small.txt",nz, source);
 
 	for (i=0;i<Nf;i++) {
 		field[i].x = source[i].x;
@@ -146,7 +146,7 @@ public:
         dof->s = 1;
         dof->f = 1;
     }
-    virtual void EvaluateKernel(vector3 fieldpos, vector3 sourcepos,
+    virtual void EvaluateKernel(vector3 fieldpos, vector3 sourcepos, // TODO: change copy to reference.
                                 double *K, doft *dof) {
         vector3 diff;        
         // Compute exp(-r)
@@ -227,11 +227,26 @@ int main(int argc, char *argv[]) {
 
 	cout << "Fmm computation finished" << endl;
 
-	cout.precision(15);
+	/***  check accuracy ***/
+	cout << "Checking accuracy" << endl;
+
+	double stress_exact[10];
+	for (int i = 0; i < 10; i++) {
+		stress_exact[i] = 0;
+		for (int j = 0; j < Ns; j++) {
+			double val = 0;
+			Atree.EvaluateKernel(field[i], source[j], &val, &dof);
+			stress_exact[i] += val * q[j];
+		}
+	}
+	double diff = 0;
+	double sum_Ax = 0;
 	for (int i=0;i<10 ;i++ )
 	{	
-		cout << stress[i] << endl;
+		diff += (stress[i] - stress_exact[i])*(stress[i] - stress_exact[i]); 
+		sum_Ax += stress_exact[i] * stress_exact[i];
 	}
+	cout << "diff of first 10 values = " << sqrt(diff) / sqrt(sum_Ax) << endl;
 
 	/*****      output result to binary file    ******/
     string outputfilename = "../output/stress.bin";
