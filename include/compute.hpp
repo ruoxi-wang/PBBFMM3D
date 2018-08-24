@@ -81,13 +81,13 @@ H2_3D_Compute<T>::H2_3D_Compute(T * FMMTree,vector3 * field, vector3 *source, in
 
    
     for (int i = 0; i < Nf; ++i) {
-    xmin.x = min(xmin.x, field[i].x);
-    xmin.y = min(xmin.y, field[i].y);
-    xmin.z = min(xmin.z, field[i].z);
+        xmin.x = min(xmin.x, field[i].x);
+        xmin.y = min(xmin.y, field[i].y);
+        xmin.z = min(xmin.z, field[i].z);
 
-    xmax.x = max(xmax.x, field[i].x);
-    xmax.y = max(xmax.y, field[i].y);
-    xmax.z = max(xmax.z, field[i].z);
+        xmax.x = max(xmax.x, field[i].x);
+        xmax.y = max(xmax.y, field[i].y);
+        xmax.z = max(xmax.z, field[i].z);
     }
 
     vector3 ctr;
@@ -95,17 +95,18 @@ H2_3D_Compute<T>::H2_3D_Compute(T * FMMTree,vector3 * field, vector3 *source, in
     ctr.y = 0.5 * (xmin.y + xmax.y);
     ctr.z = 0.5 * (xmin.z + xmax.z);
 
-
+    #pragma omp parallel for
     for (int i = 0; i < Nf; ++i) {
-        field[i].x = field[i].x - ctr.x;
-        field[i].y = field[i].y - ctr.y;
-        field[i].z = field[i].z - ctr.z;
+        field[i].x -= ctr.x;
+        field[i].y -= ctr.y;
+        field[i].z -= ctr.z;
     }
 
+    #pragma omp parallel for
     for (int i = 0; i < Ns; ++i) {
-        source[i].x = source[i].x - ctr.x;
-        source[i].y = source[i].y - ctr.y;
-        source[i].z = source[i].z - ctr.z;
+        source[i].x -=  ctr.x;
+        source[i].y -=  ctr.y;
+        source[i].z -=  ctr.z;
     }
 
 
@@ -362,9 +363,7 @@ void H2_3D_Compute<T>::FMMInteraction(nodeT **A, double *E, int *Ktable, double 
     int ninter = (*A)->iinter;
     
     double *FFCoeff = (double*)malloc(matSizeDof *sizeof(double));
-    double* Pf = (double*)malloc(cutoff_f *sizeof(double));
-    for (i=0;i<cutoff_f;i++)
-		Pf[i] = 0;
+    double* Pf = (double*)calloc(cutoff_f, sizeof(double));
 
     // Compute the field values due to all members of the interaction list
     for (i=0;i<ninter;i++) {
@@ -548,7 +547,6 @@ void H2_3D_Compute<T>::DownwardPass(nodeT **A, vector3 *field, vector3 *source,
         double alpha = 1, beta = 1;
         int incr = 1;
 
-        // #pragma omp parallel for 
         for (m=0;m<27;m++) {
             nodeT *B = (*A)->neighbors[m];
             if (m != 13 && B && !(*A)->neighborComputed[m]) {

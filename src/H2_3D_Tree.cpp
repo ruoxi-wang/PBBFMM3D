@@ -88,106 +88,105 @@ void H2_3D_Tree::FMMSetup(nodeT **A, double *Tkz,  double *Kweights,
     
     
     if (use_chebyshev) {
-    int i;
-    FILE *fK, *fU, *fV;
-    fK = fopen(Kmat, "rb");
-    fU = fopen(Umat, "rb");
-    fV = fopen(Vmat, "rb");
-    
-    
-    if (fK == NULL || fU == NULL || fV == NULL) { // Create files
-        if (fK!=NULL)
-            fclose(fK);
-        if (fU!=NULL)
-            fclose(fU);
-        if (fV!=NULL)
-            fclose(fV);
-        
-        printf("Pre-Compute files do not exit. Creating now ...\n");
-        
-        if (homogen > 1e-9) { // homogeneous kernel
-                ComputeKernelSVD(Kweights, n, epsilon, dof,
-                                 Kmat, Umat, Vmat, symmetry, Ucomp, Vcomp,alpha,
-                                 1);
-            
-        }
-        else { // non-homogeneous kernel
-            
-            // Open new files for writing boxLen and treeLevel
-            
-            fK = fopen(Kmat, "wb");
-            fwrite(&boxLen, sizeof(double), 1, fK);
-            fwrite(&treeLevel, sizeof(int), 1, fK);
-            fclose(fK);
-            
-            
-            double boxLenLevel = boxLen/4; // first FMM level
-            for (i=2; i<=treeLevel; i++) {
-                // FMM starts from the second level
-                ComputeKernelSVD(Kweights, n,  epsilon, dof,
-                                 Kmat, Umat, Vmat, symmetry, Ucomp, Vcomp,alpha,
-                                 boxLenLevel);
-                boxLenLevel /= 2;
-            }
-        }
-    }
-    
-    //non-homogen
-    else if (homogen < 1e-9) { // check if the file is usable
-        
+        int i;
+        FILE *fK, *fU, *fV;
         fK = fopen(Kmat, "rb");
-        double fileBoxLen;
-        int fileTreeLevel;
-        i  = fread(&fileBoxLen, sizeof(double), 1, fK);
-        i += fread(&fileTreeLevel, sizeof(int), 1, fK);
-        if (i != 2)
-            printf("fread error in FMMSetup().\n");
+        fU = fopen(Umat, "rb");
+        fV = fopen(Vmat, "rb");
         
-        int count = 0;
-        while (fileBoxLen > boxLen +1e-9) {
-            fileBoxLen /= 2;
-            count ++;
-        }
-        if (fabs(boxLen-fileBoxLen) < 1e-9 && treeLevel + count <=
-            fileTreeLevel) {
-            skipLevel = count; // count * Ksize
-            printf("Reading pre-compute files ...\n");
-        }
-        else { // Recreate the files
+        
+        if (fK == NULL || fU == NULL || fV == NULL) { // Create files
+            if (fK!=NULL)
+                fclose(fK);
+            if (fU!=NULL)
+                fclose(fU);
+            if (fV!=NULL)
+                fclose(fV);
             
-            printf("Recreating pre-compute files now ...\n");
+            printf("Pre-Compute files do not exit. Creating now ...\n");
             
-            fK = fopen(Kmat, "wb");
-            fwrite(&boxLen, sizeof(double), 1, fK);
-            fwrite(&treeLevel, sizeof(int), 1, fK);
-            fclose(fK);
-            
-            int i;
-            double boxLenLevel = boxLen/4; // first FMM level
-            // #pragma omp parallel for
-            for (i=2; i<=treeLevel; i++) {
-                // FMM starts from the second level
-                ComputeKernelSVD(Kweights, n, epsilon, dof,
-                                 Kmat, Umat, Vmat, symmetry, Ucomp, Vcomp,alpha,
-                                 boxLenLevel);
-                boxLenLevel /= 2;
+            if (homogen > 1e-9) { // homogeneous kernel
+                    ComputeKernelSVD(Kweights, n, epsilon, dof,
+                                     Kmat, Umat, Vmat, symmetry, Ucomp, Vcomp,alpha,
+                                     1);
+                
             }
-
+            else { // non-homogeneous kernel
+                
+                // Open new files for writing boxLen and treeLevels            
+                fK = fopen(Kmat, "wb");
+                fwrite(&boxLen, sizeof(double), 1, fK);
+                fwrite(&treeLevel, sizeof(int), 1, fK);
+                fclose(fK);
+                
+                
+                double boxLenLevel = boxLen/4; // first FMM level
+                for (i=2; i<=treeLevel; i++) {
+                    // FMM starts from the second level
+                    ComputeKernelSVD(Kweights, n,  epsilon, dof,
+                                     Kmat, Umat, Vmat, symmetry, Ucomp, Vcomp,alpha,
+                                     boxLenLevel);
+                    boxLenLevel /= 2;
+                }
+            }
         }
-    }
-    else
-        printf("Reading pre-compute files ...\n");
+        
+        //non-homogen
+        else if (homogen < 1e-9) { // check if the file is usable
+            
+            fK = fopen(Kmat, "rb");
+            double fileBoxLen;
+            int fileTreeLevel;
+            i  = fread(&fileBoxLen, sizeof(double), 1, fK);
+            i += fread(&fileTreeLevel, sizeof(int), 1, fK);
+            if (i != 2)
+                printf("fread error in FMMSetup().\n");
+            
+            int count = 0;
+            while (fileBoxLen > boxLen +1e-9) {
+                fileBoxLen /= 2;
+                count ++;
+            }
+            if (fabs(boxLen-fileBoxLen) < 1e-9 && treeLevel + count <=
+                fileTreeLevel) {
+                skipLevel = count; // count * Ksize
+                printf("Reading pre-compute files ...\n");
+            }
+            else { // Recreate the files
+                
+                printf("Recreating pre-compute files now ...\n");
+                
+                fK = fopen(Kmat, "wb");
+                fwrite(&boxLen, sizeof(double), 1, fK);
+                fwrite(&treeLevel, sizeof(int), 1, fK);
+                fclose(fK);
+                
+                int i;
+                double boxLenLevel = boxLen/4; // first FMM level
+                // #pragma omp parallel for
+                for (i=2; i<=treeLevel; i++) {
+                    // FMM starts from the second level
+                    ComputeKernelSVD(Kweights, n, epsilon, dof,
+                                     Kmat, Umat, Vmat, symmetry, Ucomp, Vcomp,alpha,
+                                     boxLenLevel);
+                    boxLenLevel /= 2;
+                }
 
-    fU = fopen(Umat,"rb");
-    int j = fread(&(cutoff->f), sizeof(int), 1, fU);
-    fclose(fU);
-    
-    fV = fopen(Vmat,"rb");
-    j += fread(&(cutoff->s), sizeof(int), 1, fV);
-    fclose(fV);
-    
-    if (j != 2)
-        printf("fread() error in FMMSetup().\n");
+            }
+        }
+        else
+            printf("Reading pre-compute files ...\n");
+
+        fU = fopen(Umat,"rb");
+        int j = fread(&(cutoff->f), sizeof(int), 1, fU);
+        fclose(fU);
+        
+        fV = fopen(Vmat,"rb");
+        j += fread(&(cutoff->s), sizeof(int), 1, fV);
+        fclose(fV);
+        
+        if (j != 2)
+            printf("fread() error in FMMSetup().\n");
 
     }
     
@@ -203,9 +202,7 @@ void H2_3D_Tree::FMMSetup(nodeT **A, double *Tkz,  double *Kweights,
 
     
         // Builds the FMM hierarchy
-	center.x = 0;
-	center.y = 0;
-	center.z = 0;
+	center = {0, 0, 0};
 	(*A) = NULL;
 
 	NewNode(A,center,L,n);
@@ -352,7 +349,9 @@ void H2_3D_Tree::ComputeKernelSVD(double *Kweights, int n,double epsilon, doft *
         for (k2=-3;k2<4;k2++) {
             for (k3=-3;k3<4;k3++) {
                 if (abs(k1) > 1 || abs(k2) > 1 || abs(k3) > 1) {
-                    countM2L = (k1+3)*49+(k2+3)* 7 + (k3+3) - (min(max(k1 + 1, 0), 3) *9 +  (-1 <= k1 && k1 <= 1 ? 1 : 0)* min(max(k2+1, 0), 3)*3 + (-1 <= k1 && k1 <= 1 ? 1 : 0)*(-1 <= k2 && k2 <= 1 ? 1 : 0) * min(max(k3 + 1, 0), 3));
+                    countM2L = (k1+3)*49+(k2+3)* 7 + (k3+3) - (min(max(k1 + 1, 0), 3) *9 +  
+                        (-1 <= k1 && k1 <= 1 ? 1 : 0)* min(max(k2+1, 0), 3)*3 + 
+                        (-1 <= k1 && k1 <= 1 ? 1 : 0)*(-1 <= k2 && k2 <= 1 ? 1 : 0) * min(max(k3 + 1, 0), 3));
                     if (countM2L < symmNum) {
                         vector3 * sourcepos = (vector3 *)malloc(n3 * sizeof(vector3));
                         double*   kernel = (double *)malloc(dof2n6 * sizeof(double));
@@ -745,8 +744,9 @@ void H2_3D_Tree::EvaluateKernelCell(vector3 *field, vector3 *source, int Nf,
                         int Ns, doft *dof, double *kernel) {
 	int i, j;	
 	for (j=0;j<Ns;j++) {
+        vector3 cur_source = source[j];
 		for (i=0;i<Nf;i++) {
-            EvaluateKernel(field[i],source[j],&kernel[i + Nf * j], dof);
+            EvaluateKernel(field[i],cur_source,&kernel[i + Nf * j], dof);
 		}
 	}
 }

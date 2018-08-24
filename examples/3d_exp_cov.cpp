@@ -146,7 +146,7 @@ public:
         dof->s = 1;
         dof->f = 1;
     }
-    virtual void EvaluateKernel(vector3 fieldpos, vector3 sourcepos, // TODO: change copy to reference.
+    virtual void EvaluateKernel(vector3& fieldpos, vector3& sourcepos, // TODO: change copy to reference.
                                 double *K, doft *dof) {
         vector3 diff;        
         // Compute exp(-r)

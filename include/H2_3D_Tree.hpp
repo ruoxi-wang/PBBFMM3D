@@ -92,7 +92,7 @@ public:
         
     void GetPosition(int n, int idx, double *fieldpos, double *sourcepos, double *nodepos);
     
-    virtual void EvaluateKernel(vector3 fieldpos, vector3 sourcepos,
+    virtual void EvaluateKernel(vector3& fieldpos, vector3& sourcepos,
                                  double *K, doft *dof){};
     void EvaluateKernelMulti(vector3 fieldpos, vector3 sourcepos,
                         double *K, doft *dof, int m);

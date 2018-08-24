@@ -5,11 +5,13 @@
 
 CC = g++
 LD = g++
-CFLAGS  = -c -Wall -O3 -I ./include/ -I/usr/include 
-LDPATH = -L/usr/lib -I/usr/include -I ./include/
-LDFLAGS = -llapack -lblas -lrfftw -lfftw -lm 
+# CFLAGS  = -c -Wall -O3 -pg -I ./include/ -I/usr/include -fopenmp
+# LDPATH = -L/usr/lib -I/usr/include -I ./include/
+# LDFLAGS = -pg -O3 -llapack -lblas -lrfftw -lfftw -lm -fopenmp
+CFLAGS  = -c -Wall -O3 -I $(MKLROOT)/include -L $(MKLROOT)/lib/intel64 -I ./include/ -I/usr/include  -fopenmp
+LDPATH = -I $(MKLROOT)/include -L $(MKLROOT)/lib/intel64 -L/ -L/usr/lib -I/usr/include -I ./include/
+LDFLAGS =  -Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_intel_lp64.a ${MKLROOT}/lib/intel64/libmkl_sequential.a ${MKLROOT}/lib/intel64/libmkl_core.a -Wl,--end-group -lpthread -lm -ldl -lrfftw -lfftw -fopenmp
 MFLAGS = -lm
-
 PFLAG  =
 SOURCES =  ./src/kernel_Types.cpp ./src/H2_3D_Tree.cpp ./src/read_metadata.cpp ./src/read_sources.cpp ./src/write_Into_Binary_File.cpp
 
