@@ -93,7 +93,6 @@ void H2_3D_Tree::PrecomputeM2L(double *Kweights, double boxLen, double alpha,
   if ( !PrecomputeAvailable(Kmat, Umat, Vmat, homogen, boxLen, treeLevel, use_chebyshev) ) {
     StartPrecompute( boxLen, treeLevel, interpolation_order, dof, homogen, symmetry, Kmat, Umat, Vmat, alpha, Kweights, epsilon, use_chebyshev );
   }
-   
   // Read kernel interaction matrix K and singular vectors U and VT
   FMMReadMatrices(K,U,VT, cutoff,interpolation_order,dof,Kmat,Umat,Vmat, treeLevel, homogen, use_chebyshev);
 
@@ -125,7 +124,6 @@ bool H2_3D_Tree::PrecomputeAvailable( char *Kmat, char *Umat, char *Vmat,
   if (fK!=NULL) fclose(fK);
   if (fU!=NULL) fclose(fU);
   if (fV!=NULL) fclose(fV);
-
   if (avail) printf("Precompute files exist.\n");
   else printf("Precompute files do NOT exist.\n");
   return avail;
@@ -143,14 +141,13 @@ void H2_3D_Tree::StartPrecompute(double boxLen, int treeLevel, int interpolation
   fwrite(&treeLevel, sizeof(int), 1, fK); // write tree level
   fclose(fK);                
   bool first_time_call = true;
-  
+
   if ( IsHomoKernel(homogen) ) {  // homogeneours kernel
 
     double unit_len = 1.0;
     compute_m2l_operator(interpolation_order, dof, symmetry, Kmat, Umat, Vmat, unit_len, alpha, Kweights, epsilon, use_chebyshev, first_time_call);
     
   } else {                                // non-homogeneous kernel
-
     int j;
     double boxLenLevel = boxLen/4;        // FMM starts from the second level
     for (j=2; j<=treeLevel; j++) {
@@ -221,7 +218,6 @@ void H2_3D_Tree::FMMReadMatrices(double **K, double **U, double **VT, doft *cuto
     
     *U  = (double *)malloc(Usize *sizeof(double)); 
     *VT = (double *)malloc(Vsize *sizeof(double));
-    
     READ_CHECK( fread(*U,  sizeof(double), Usize, fU), Usize );
     READ_CHECK( fread(*VT, sizeof(double), Vsize, fV), Vsize );
 
@@ -376,7 +372,6 @@ void H2_3D_Tree::ComputeKernelCheb(double *Kweights, int interpolation_order,dou
         }
     }
 	
-    
     /****
      * Compute the SVD of K_fat
      ****/
@@ -401,12 +396,11 @@ void H2_3D_Tree::ComputeKernelCheb(double *Kweights, int interpolation_order,dou
     Sigma      = (double *)malloc(Sigma_size * sizeof(double));
     U0         = (double *)malloc(U0size * sizeof(double));
     VT0        = NULL;
-    
     dgesvd_(save, nosave, &dofn3_f, &cols_s, K0, &dofn3_f, Sigma, U0,
             &dofn3_f, VT0, &nosavedim, work, &lwork, &info);
-    
+
     FILE *ptr_file;
-    
+
     double sumsqr, sum, epsqr;
     if (first_time_call) { // The first time called
         
@@ -427,6 +421,7 @@ void H2_3D_Tree::ComputeKernelCheb(double *Kweights, int interpolation_order,dou
         
         // Extract the needed columns from U0 and write out to a file
         ptr_file = fopen(Umat,"wb");
+
         fwrite(&cutoff.f, sizeof(int), 1, ptr_file);
         fclose(ptr_file);
     }
