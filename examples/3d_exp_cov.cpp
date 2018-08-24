@@ -113,21 +113,7 @@ void SetSources(vector3 *field, int Nf, vector3 *source, int Ns, double *q, int 
         
     }
 
-//	// read from binary file
-//	string filename = "../input/input.bin";
-//	
-//	ifstream fin;
-//	
-//	fin.open(filename.c_str(),ios::binary);
-//	if (!fin.good()){
-//		cerr << "Failed to open file " << filename << endl;
-//		throw runtime_error("Failed to open file!");
-//	}
-//
-//	fin.read((char*) q, m*Nf*dof->s*sizeof(double));
-//	fin.close();	
-//
-	read_xyz("../input/xcoord.txt",nx,"../input/xcoord.txt",ny,"../input/xcoord.txt",nz, source);
+	read_xyz("../input/xcoord.txt",nx,"../input/ycoord.txt",ny,"../input/zcoord.txt",nz, source);
 
 	for (i=0;i<Nf;i++) {
 		field[i].x = source[i].x;
@@ -174,7 +160,7 @@ int main(int argc, char *argv[]) {
     int m;
     int level;
     double eps;
-    int use_chebyshev = 1;
+    int use_chebyshev = 0;
     int nx,ny,nz;
 
 	// read data
@@ -203,7 +189,6 @@ int main(int argc, char *argv[]) {
 	cout << "level              : " << level << endl;
     cout << "eps                : " << eps << endl;
 
-    
     /**********************************************************/
     /*                                                        */
     /*                 Fast matrix vector product             */
@@ -232,7 +217,7 @@ int main(int argc, char *argv[]) {
 	cout << "Fmm computation finished" << endl;
 
 	/***  check accuracy ***/
-	cout << "Checking accuracy" << endl;
+	cout << "Checking accuracy of first 10 values" << endl;
 
 	double stress_exact[10];
 	for (int i = 0; i < 10; i++) {
@@ -256,11 +241,6 @@ int main(int argc, char *argv[]) {
     string outputfilename = "../output/stress.bin";
     write_Into_Binary_File(outputfilename, stress, m*Nf*dof.f);
     
-    //skip Exact matrix vector product
-
-	// cout << "Pre-computation time: " << double(tPre) / double(CLOCKS_PER_SEC) << endl;
- //    cout << "FMM computing time:   " << double(tFMM) / double(CLOCKS_PER_SEC)  << endl;
-	// cout << "FMM total time:   "  << double(tPre+tFMM) / double(CLOCKS_PER_SEC)  << endl;
 	cout << "Pre-computation time: " << tPre << endl;
     cout << "FMM computing time:   " << tFMM  << endl;
 	cout << "FMM total time:   "  << tPre+tFMM  << endl;

@@ -7,7 +7,9 @@
 
 #include"bbfmm.h"
 #include"environment.hpp"
-#include "rfftw.h"
+#include <fftw3.h>    // fft transform of real input
+#define EQUAL_DOUBLE_EPS 1e-6
+
 
 using namespace std;
 /*! The fmm tree */
@@ -40,8 +42,8 @@ public:
 	int dofn3_s;
 	int dofn3_f;
 	
-    rfftw_plan p_r2c;
-    rfftw_plan p_c2r;
+    // rfftw_plan p_r2c;
+    // rfftw_plan p_c2r;
     
     bool computed;
 	double *Kweights, *Cweights, *Tkz;
@@ -50,18 +52,10 @@ public:
 	// All the cells in consideration: 7^3 = 343
 	int Ktable[343];
 	
-    //void get_Compression_Rate(double* Ucomp, double* Vcomp);//Compression rate of the singular vector matrices
-	
-    // Set up for FMM
-	void FMMSetup(nodeT **A, double *Tkz, double *Kweights,
-                  double *Cweights, double L, doft *cutoff,
-                  int n,  double epsilon, doft * dof,  int level, char *Kmat, char *Umat, char *Vmat,
-                  double *Ucomp, double *Vcomp, int& skipLevel, double alpha, int use_chebyshev,rfftw_plan p_r2c);
-    
     void buildFMMTree();
-    void ComputeKernelSVD(double *Kweights, int n,double epsilon, doft *dof, char*Kmat, char *Umat, char *Vmat, int symm,  double *Ucomp,double *Vcomp, double alphaAdjust, double boxLen);
-    void ComputeKernelUniformGrid(double *Kweights, int n, doft *dof,  char *Kmat, double alphaAdjust, rfftw_plan p_r2c);
-    
+    void ComputeKernelCheb(double *Kweights, int n,double epsilon, doft *dof, char*Kmat, char *Umat, char *Vmat, int symm, double alphaAdjust, double boxLen,  bool first_time_call);
+    // void ComputeKernelUniformGrid(double *Kweights, int n, doft *dof,  char *Kmat, double alphaAdjust, rfftw_plan p_r2c);
+    void ComputeKernelUnif(int n, doft dof, char *Kmat, double alphaAdjust, double len);
     void ComputeWeights(double *Tkz, int *Ktable, double *Kweights,
                         double *Cweights, int n,double alpha, int use_chebyshev);
     
@@ -82,8 +76,10 @@ public:
 	 */
 	
     // Read kernel interaction matrix K and singular vectors U and VT
-	void FMMReadMatrices(double *K, double *U, double *VT, doft *cutoff, int n, doft *dof,char *Kmat, char *Umat, char *Vmat, int treeLevel, double homogen, int skipLevel, int use_chebyshev);
-    
+    void FMMReadMatrices(double **K, double **U, double **VT, doft *cutoff,
+             int n, doft dof, char *Kmat, char *Umat,
+             char *Vmat, int treeLevel, double homogen,
+             int use_chebyshev);
     void BuildFMMHierarchy(nodeT **A, int level, int n, doft *cutoff, doft *dof);
     
     void NewNode(nodeT **A, vector3 center, double L, int n);
@@ -99,12 +95,33 @@ public:
     virtual void setHomogen(string& kernelType, doft* dof){};
     void get_Charge(nodeT*& node, double* q);
     void get_Location(nodeT*& node, vector3 *source);
+    void compute_m2l_operator (int n, doft dof, int symmetry, char *Kmat, char *Umat, char *Vmat, double l, double alpha, double *Kweights, double epsilon, int grid_type, bool first_time_call);
+    void StartPrecompute(double boxLen, int treeLevel, int n, doft dof, int homogen, int symmetry, char *Kmat, char *Umat, char *Vmat, double alpha, double *Kweights, double epsilon, int use_chebyshev);
+    bool IsHomoKernel( double homogen );
+    bool PrecomputeAvailable( char *Kmat, char *Umat, char *Vmat, double homogen, double boxLen,
+              int treeLevel, int grid_type );
+    void GetM2L(double *Kweights, double boxLen, double alpha,
+        doft *cutoff, int n, int homogen,
+        double epsilon, doft dof, int treeLevel,
+        double **K, double **U, double **VT, int use_chebyshev);
+    void GridPos1d(double alpha, double len, int n, int use_chebyshev,
+           double* nodes);
+
 
     /*! Destructor of class H2_3D_Tree */
     ~H2_3D_Tree();
 	
 
 };
+
+#define READ_CHECK( callReturn, num ) do {      \
+    if (callReturn != num) {                \
+      printf("Read error in file '%s' at line %i.\n"    \
+         , __FILE__, __LINE__);         \
+      exit(1);                      \
+    }                           \
+  } while(0)                        \
+
 
 
 #endif //(__H2_3D_Tree_hpp__)

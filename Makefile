@@ -5,12 +5,18 @@
 
 CC = g++
 LD = g++
-# CFLAGS  = -c -Wall -O3 -pg -I ./include/ -I/usr/include -fopenmp
-# LDPATH = -L/usr/lib -I/usr/include -I ./include/
-# LDFLAGS = -pg -O3 -llapack -lblas -lrfftw -lfftw -lm -fopenmp
-CFLAGS  = -c -Wall -O3 -I $(MKLROOT)/include -L $(MKLROOT)/lib/intel64 -I ./include/ -I/usr/include  -fopenmp
+
+FFTW_ROOT = /usr/local/
+FFTW_LIB = $(FFTW_ROOT)/lib
+FFTW_INCLUDE = $(FFTW_ROOT)/include
+
+# CFLAGS  = -c -Wall -O3 -pg -I ./include/ -I/usr/include -I$(FFTW_INCLUDE) -fopenmp
+# LDPATH = -L/usr/lib -I/usr/include -I ./include/ 
+# LDFLAGS = -pg -O3 -llapack -lblas -L$(FFTW_LIB) -lfftw3 -lm -fopenmp
+CFLAGS  = -c -Wall -O3 -I $(MKLROOT)/include -L $(MKLROOT)/lib/intel64 -I ./include/ -I/usr/include -I$(FFTW_INCLUDE) -fopenmp
 LDPATH = -I $(MKLROOT)/include -L $(MKLROOT)/lib/intel64 -L/ -L/usr/lib -I/usr/include -I ./include/
-LDFLAGS =  -Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_intel_lp64.a ${MKLROOT}/lib/intel64/libmkl_sequential.a ${MKLROOT}/lib/intel64/libmkl_core.a -Wl,--end-group -lpthread -lm -ldl -lrfftw -lfftw -fopenmp
+LDFLAGS =  -L$(FFTW_LIB) -lfftw3 -Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_intel_lp64.a ${MKLROOT}/lib/intel64/libmkl_sequential.a ${MKLROOT}/lib/intel64/libmkl_core.a -Wl,--end-group \
+-lpthread -lm -ldl -fopenmp
 MFLAGS = -lm
 PFLAG  =
 SOURCES =  ./src/kernel_Types.cpp ./src/H2_3D_Tree.cpp ./src/read_metadata.cpp ./src/read_sources.cpp ./src/write_Into_Binary_File.cpp
