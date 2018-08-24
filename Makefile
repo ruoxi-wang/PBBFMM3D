@@ -1,8 +1,3 @@
-#
-# File: Makefile
-# Description: Makefile for BBFMM3D
-#
-
 CC = g++
 LD = g++
 

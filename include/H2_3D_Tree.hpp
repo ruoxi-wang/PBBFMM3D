@@ -4,7 +4,7 @@
  */
 #ifndef __H2_3D_Tree_hpp__
 #define __H2_3D_Tree_hpp__
-
+#include <vector>
 #include"bbfmm.h"
 #include"environment.hpp"
 #include <fftw3.h>    // fft transform of real input
@@ -88,11 +88,9 @@ public:
         
     void GetPosition(int n, int idx, double *fieldpos, double *sourcepos, double *nodepos);
     
-    virtual void EvaluateKernel(vector3& fieldpos, vector3& sourcepos,
-                                 double *K, doft *dof){};
-    void EvaluateKernelMulti(vector3 fieldpos, vector3 sourcepos,
-                        double *K, doft *dof, int m);
-    virtual void setHomogen(string& kernelType, doft* dof){};
+    virtual double EvaluateKernel(vector3& fieldpos, vector3& sourcepos) = 0;
+
+    virtual void setKernelProperty(){};
     void get_Charge(nodeT*& node, double* q, int N, int m);
     void get_Location(nodeT*& node, vector3 *source);
     void compute_m2l_operator (int n, doft dof, int symmetry, char *Kmat, char *Umat, char *Vmat, double l, double alpha, double *Kweights, double epsilon, int grid_type, bool first_time_call);
@@ -113,6 +111,7 @@ public:
 	
 
 };
+
 
 #define READ_CHECK( callReturn, num ) do {      \
     if (callReturn != num) {                \

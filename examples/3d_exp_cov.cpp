@@ -2,7 +2,7 @@
 #include "bbfmm3d.hpp"
 #include<iostream>
 
-void SetMetaData(double& L, int& n, doft& dof, int& Ns, int& Nf, int& m, int& level, double& eps, int& nx, int& ny, int& nz) {
+void SetMetaData(double& L, int& n, int& Ns, int& Nf, int& m, int& level, double& eps, int& nx, int& ny, int& nz) {
 //		read from parameters.txt
 //    L   // Length of simulation cell (assumed to be a cube)
 //    n   // Number of Chebyshev nodes per dimension
@@ -28,7 +28,7 @@ void SetMetaData(double& L, int& n, doft& dof, int& Ns, int& Nf, int& m, int& le
     stringstream ss;
     ss << line;
     char comma;
-    ss >> L >> comma >> n >> comma >> dof.s >> comma >> dof.f >> comma >> nx >> comma >> ny 
+    ss >> L >> comma >> n >> comma >> nx >> comma >> ny 
 		>> comma >> nz >> comma >> m >> comma >> level >> comma >> eps;
     
 	fin.close();
@@ -37,7 +37,7 @@ void SetMetaData(double& L, int& n, doft& dof, int& Ns, int& Nf, int& m, int& le
 	Nf = nx*ny*nz;	// Number of field points in simulation cell
 }
 
-void read_xyz(const string& filenamex, int nx, const string& filenamey,int ny, const string& filenamez,int nz, vector3 *xyz) {
+void read_xyz(const string& filenamex, int nx, const string& filenamey,int ny, const string& filenamez,int nz, vector<vector3>&xyz) {
 	ifstream fin;
 	double* x = new double[nx];
 	double* y = new double[ny];
@@ -98,19 +98,16 @@ void read_xyz(const string& filenamex, int nx, const string& filenamey,int ny, c
  * -------------------------------------------------------------------
  */
 
-void SetSources(vector3 *field, int Nf, vector3 *source, int Ns, double *q, int m,
-                doft *dof, double L, int nx, int ny, int nz) {
+void SetSources(std::vector<vector3>& field, int Nf, std::vector<vector3>& source, int Ns, std::vector<double>& q, int m,
+                double L, int nx, int ny, int nz) {
 
-	int l, i, j, k=0;
+	int l, i, k=0;
 	
     // vector of ones for now
     for (l=0;l<m;l++) {
-        for (i=0;i<Ns;i++) {
-            for (j=0; j<dof->s; j++, k++){
+        for (i=0;i<Ns;i++, k++) {
                 q[k] = 1.0;
-            }
         }
-        
     }
 
 	read_xyz("../input/xcoord.txt",nx,"../input/ycoord.txt",ny,"../input/zcoord.txt",nz, source);
@@ -125,22 +122,19 @@ void SetSources(vector3 *field, int Nf, vector3 *source, int Ns, double *q, int 
 class myKernel: public H2_3D_Tree {
 public:
     myKernel(double L, int level, int n,  double epsilon, int use_chebyshev):H2_3D_Tree(L,level,n, epsilon, use_chebyshev){};
-    virtual void setHomogen(string& kernelType,doft *dof) {
+    virtual void setKernelProperty() {
         homogen = 0;
         symmetry = 1;
         kernelType = "myKernel";
-        dof->s = 1;
-        dof->f = 1;
     }
-    virtual void EvaluateKernel(vector3& fieldpos, vector3& sourcepos, // TODO: change copy to reference.
-                                double *K, doft *dof) {
+    virtual double EvaluateKernel(vector3& fieldpos, vector3& sourcepos) {
         vector3 diff;        
         // Compute exp(-r)
         diff.x = sourcepos.x - fieldpos.x;
         diff.y = sourcepos.y - fieldpos.y;
         diff.z = sourcepos.z - fieldpos.z;
         double r = sqrt(diff.x*diff.x/100. + diff.y*diff.y/100. + diff.z*diff.z/2.25);
-        *K = 0.75*exp(-r);
+        return 0.75*exp(-r);
     }
 };
 
@@ -154,7 +148,6 @@ int main(int argc, char *argv[]) {
     
     double L;       // Length of simulation cell (assumed to be a cube)
     int n;          // Number of Chebyshev nodes per dimension
-    doft dof;
     int Ns;         // Number of sources in simulation cell
     int Nf;         // Number of field points in simulation cell
     int m;
@@ -164,27 +157,25 @@ int main(int argc, char *argv[]) {
     int nx,ny,nz;
 
 	// read data
-    SetMetaData(L, n, dof, Ns, Nf, m, level, eps, nx, ny, nz);
+    SetMetaData(L, n, Ns, Nf, m, level, eps, nx, ny, nz);
 
-	vector3* source = new vector3[Ns]; // Position array for the source points
-	vector3* field = new vector3[Nf];  // Position array for the field points
-	double* q = new double[Ns*m]; // Source array
+	std::vector<vector3> source(Ns); // Position array for the source points
+	std::vector<vector3> field(Nf);  // Position array for the field points
+	std::vector<double> q(Ns*m); // Source array
 
-	SetSources(field,Nf,source,Ns,q,m,&dof,L,nx,ny,nz);
+	SetSources(field,Nf,source,Ns,q,m, L,nx,ny,nz);
 	//cout << "q[0] : " << q[0] << " q[end] : " << q[Ns-1] << endl;
 
 
 
 	//double err;
-    double *stress      =  new double[Nf*m];// Field array (BBFMM calculation)
+    std::vector<double> stress(Nf*m);// Field array (BBFMM calculation)
     for (int i = 0; i < Nf*m; i++)
     	stress[i] = 0; 				// TODO: check do we need to initialize
 	cout << "L                  : " << L << endl;
 	cout << "n (# chebyshev)    : " << n << endl;
 	cout << "Ns (=Nf)           : " << Ns << endl;
 	cout << "Nf (=Nf)           : " << Nf << endl;
-	cout << "dof.s              : " << dof.s << endl;
-	cout << "dof.f              : " << dof.f << endl;
 	cout << "m (# of cols in q) : " << m << endl;
 	cout << "level              : " << level << endl;
     cout << "eps                : " << eps << endl;
@@ -209,7 +200,7 @@ int main(int argc, char *argv[]) {
     /*****      FMM Computation     *******/
     // t0 = clock();
     t0 = omp_get_wtime(); 
-	H2_3D_Compute<myKernel> compute(&Atree, field, source, Ns, Nf, q,m, stress);
+	H2_3D_Compute<myKernel> compute(Atree, field, source, Ns, Nf, q, m, stress);
 	// t1 = clock();
 	t1 = omp_get_wtime(); 
     double tFMM = t1 - t0;
@@ -225,8 +216,7 @@ int main(int argc, char *argv[]) {
 		for (int i = 0; i < num_rows; i++) {
 			stress_exact[k*num_rows+i] = 0;
 			for (int j = 0; j < Ns; j++) {
-				double val = 0;
-				Atree.EvaluateKernel(field[i], source[j], &val, &dof);
+				double val = Atree.EvaluateKernel(field[i], source[j]);
 				stress_exact[k*num_rows+i] += val * q[k*Nf+j];
 			}
 		}
@@ -243,7 +233,7 @@ int main(int argc, char *argv[]) {
 
 	/*****      output result to binary file    ******/
     string outputfilename = "../output/stress.bin";
-    write_Into_Binary_File(outputfilename, stress, m*Nf*dof.f);
+    write_Into_Binary_File(outputfilename, &stress[0], m*Nf);
     
 	cout << "Pre-computation time: " << tPre << endl;
     cout << "FMM computing time:   " << tFMM  << endl;
@@ -251,8 +241,6 @@ int main(int argc, char *argv[]) {
     
     /*******            Clean Up        *******/
     
-    delete []stress;
-	delete []source;
-	delete []field;
+ 
     return 0;
 }

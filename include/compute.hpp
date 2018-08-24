@@ -3,7 +3,7 @@
  */
 #ifndef __compute_hpp__
 #define __compute_hpp__
-
+#include <vector>
 #include "bbfmm.h"
 #include "environment.hpp" 
 #include "kernel_Types.hpp"
@@ -14,7 +14,7 @@
 template <typename T>
 class H2_3D_Compute {
 public:
-    H2_3D_Compute(T* FMMTree, vector3 * field, vector3 *source, int Ns, int Nf, double* charge,int m,double* stress); 
+    H2_3D_Compute(T& FMMTree, std::vector<vector3>& field, std::vector<vector3>&source, int Ns, int Nf, std::vector<double>& charge,int m, std::vector<double>& stress); 
     T* FMMTree;
     vector3 * field;
     vector3 * source;
@@ -55,21 +55,22 @@ public:
 
 
 template <typename T>
-H2_3D_Compute<T>::H2_3D_Compute(T * FMMTree,vector3 * field, vector3 *source, int Ns, int Nf, double* charge, int m, double* stress) {
-    if (FMMTree->computed == true) {
-        if (FMMTree->tree != NULL) {
-            FMMTree->FreeNode(FMMTree->tree);
-            FMMTree->tree = NULL;
+H2_3D_Compute<T>::H2_3D_Compute(T &FMMTree, std::vector<vector3>& field, std::vector<vector3>& source, int Ns, int Nf, std::vector<double>& charge, int m, std::vector<double>&stress) {
+
+    if (FMMTree.computed == true) {
+        if (FMMTree.tree != NULL) {
+            FMMTree.FreeNode(FMMTree.tree);
+            FMMTree.tree = NULL;
         }
         vector3 center;
         center.x = 0;
         center.y = 0;
         center.z = 0;
-        FMMTree->NewNode(&FMMTree->tree,center,FMMTree->L,FMMTree->n);
-        FMMTree->BuildFMMHierarchy(&FMMTree->tree,FMMTree->level,FMMTree->n,&FMMTree->cutoff,FMMTree->dof);
+        FMMTree.NewNode(&FMMTree.tree,center,FMMTree.L,FMMTree.n);
+        FMMTree.BuildFMMHierarchy(&FMMTree.tree,FMMTree.level,FMMTree.n,&FMMTree.cutoff,FMMTree.dof);
 
     }
-    this->FMMTree   =   FMMTree;
+    this->FMMTree   =   &FMMTree;
 
     // shift field and source pts s.t. they center around orign
     vector3 xmin;
@@ -108,17 +109,18 @@ H2_3D_Compute<T>::H2_3D_Compute(T * FMMTree,vector3 * field, vector3 *source, in
     }
 
 
-    this-> field    =   field;
-    this-> source   =   source;
+    this-> field    =   &field[0];
+    this-> source   =   &source[0];
     this-> Ns       =   Ns;
     this-> Nf       =   Nf;
-    this->charge    =   charge;
+    this->charge    =   &charge[0];
     this->m         =   m;
 
-    FMMDistribute(&FMMTree->tree,field,source,Nf,Ns, FMMTree->level);
-    FMMCompute(&FMMTree->tree,field,source,charge,FMMTree->K,FMMTree->U,FMMTree->VT,FMMTree->Tkz,FMMTree->Ktable,FMMTree->Kweights,FMMTree->Cweights,
-                   FMMTree->homogen,&FMMTree->cutoff,FMMTree->n,FMMTree->dof,stress, FMMTree->use_chebyshev);
-    FMMTree->computed = true;
+    FMMDistribute(&FMMTree.tree, &field[0], &source[0],Nf,Ns, FMMTree.level);
+    FMMCompute(&FMMTree.tree,&field[0], &source[0],&charge[0],FMMTree.K,FMMTree.U,FMMTree.VT,FMMTree.Tkz,FMMTree.Ktable,FMMTree.Kweights,FMMTree.Cweights,
+                   FMMTree.homogen,&FMMTree.cutoff,FMMTree.n,FMMTree.dof, &stress[0], FMMTree.use_chebyshev);
+
+    FMMTree.computed = true;
 }
 
 /*
@@ -160,7 +162,6 @@ void H2_3D_Compute<T>::FMMCompute(nodeT **A, vector3 *field, vector3 *source, do
     UpwardPass(A,source,charge,Cweights,Tkz,VT,Kweights,cutoff,n,dof, homogen, 0, use_chebyshev);
     t1 = omp_get_wtime(); 
     double t_upward = t1 - t0;
-    
     t0 = omp_get_wtime(); 
 	FMMInteraction(A,K,Ktable,U,VT,Kweights,n,*dof,*cutoff,homogen,0, use_chebyshev);
     t1 = omp_get_wtime(); 
@@ -170,7 +171,6 @@ void H2_3D_Compute<T>::FMMCompute(nodeT **A, vector3 *field, vector3 *source, do
     DownwardPass(A,field,source,Cweights,Tkz,charge,cutoff,n,dof,stress, use_chebyshev);
     t1 = omp_get_wtime(); 
     double t_downward = t1 - t0;
-
     cout << "upward time = " << t_upward << " interaction time = "  << t_interaction << " downward time = " << t_downward << endl;
 }
 
@@ -622,7 +622,7 @@ void H2_3D_Compute<T>::EvaluateField(vector3* field, vector3* source, int Nf,int
 	for (j=0;j<Ns;j++) {
         vector3 cur_source = source[j];
 		for (i=0;i<Nf;i++) {
-            FMMTree->EvaluateKernel(field[i],cur_source,&Kcell[i + Nf * j],dof);
+            Kcell[i + Nf * j] = FMMTree->EvaluateKernel(field[i],cur_source);
 		}
 	}
 }
@@ -633,7 +633,7 @@ void H2_3D_Compute<T>::EvaluateField_self(vector3* field, int Nf, doft *dof, dou
     for (j=0;j<Nf;j++) {
         vector3 cur_field = field[j];
         for (i=0;i<=j;i++) {
-            FMMTree->EvaluateKernel(field[i],cur_field,&Kcell[i + Nf * j],dof);
+            Kcell[i + Nf * j] = FMMTree->EvaluateKernel(field[i],cur_field);
             Kcell[j + Nf * i] = Kcell[i + Nf * j];
         }
     }
