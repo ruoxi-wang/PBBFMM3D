@@ -78,16 +78,15 @@ H2_3D_Compute<T>::H2_3D_Compute(T * FMMTree,vector3 * field, vector3 *source, in
     vector3 xmax;
     xmax.x = -1e32; xmax.y = -1e32; xmax.z = -1e32;
 
-
    
     for (int i = 0; i < Nf; ++i) {
-        xmin.x = min(xmin.x, field[i].x);
-        xmin.y = min(xmin.y, field[i].y);
-        xmin.z = min(xmin.z, field[i].z);
+    xmin.x = min(xmin.x, field[i].x);
+    xmin.y = min(xmin.y, field[i].y);
+    xmin.z = min(xmin.z, field[i].z);
 
-        xmax.x = max(xmax.x, field[i].x);
-        xmax.y = max(xmax.y, field[i].y);
-        xmax.z = max(xmax.z, field[i].z);
+    xmax.x = max(xmax.x, field[i].x);
+    xmax.y = max(xmax.y, field[i].y);
+    xmax.z = max(xmax.z, field[i].z);
     }
 
     vector3 ctr;
@@ -102,9 +101,15 @@ H2_3D_Compute<T>::H2_3D_Compute(T * FMMTree,vector3 * field, vector3 *source, in
         field[i].z = field[i].z - ctr.z;
     }
 
+    for (int i = 0; i < Ns; ++i) {
+        source[i].x = source[i].x - ctr.x;
+        source[i].y = source[i].y - ctr.y;
+        source[i].z = source[i].z - ctr.z;
+    }
+
 
     this-> field    =   field;
-    this-> source   =   field;
+    this-> source   =   source;
     this-> Ns       =   Ns;
     this-> Nf       =   Nf;
     this->charge    =   charge;
@@ -176,7 +181,10 @@ void H2_3D_Compute<T>::UpwardPass(nodeT **A, vector3 *source, double *q, double 
 	if ((*A)->leaves[0] != NULL) {  // Going up the tree M2M
         
         // Allocate memory for the source values and initialize
-		(*A)->sourceval = (double *)calloc(n3, sizeof(double));
+		(*A)->sourceval = (double *)malloc(n3*sizeof(double));
+		for (l=0;l<n3;l++) {
+            (*A)->sourceval[l] = 0;
+        }
 		
         // Determine which children cells contain sources
 		for (i=0;i<8;i++) {
@@ -351,7 +359,9 @@ void H2_3D_Compute<T>::FMMInteraction(nodeT **A, double *E, int *Ktable, double 
     int ninter = (*A)->iinter;
     
     double *FFCoeff = (double*)malloc(matSizeDof *sizeof(double));
-    double* Pf = (double*)calloc(cutoff_f, sizeof(double));
+    double* Pf = (double*)malloc(cutoff_f *sizeof(double));
+    for (i=0;i<cutoff_f;i++)
+		Pf[i] = 0;
 
     // Compute the field values due to all members of the interaction list
     for (i=0;i<ninter;i++) {
@@ -382,7 +392,7 @@ void H2_3D_Compute<T>::FMMInteraction(nodeT **A, double *E, int *Ktable, double 
                 productfre[j] += FFCoeff[j];
         }else {
         
-            Moment2Local(n, R, B->sourceval, FFCoeff, E +Ksize*shift, Ktable,
+        Moment2Local(n, R, B->sourceval, FFCoeff, E +Ksize*shift, Ktable,
                      dof, cutoff, VT +Vsize*shift, Kweights, use_chebyshev);
             for (j=0; j<cutoff_f; j++)
                 Pf[j] += FFCoeff[j];
@@ -494,7 +504,7 @@ void H2_3D_Compute<T>::DownwardPass(nodeT **A, vector3 *field, vector3 *source,
         nodeT *B;
 
         // Obtain the positions of the field points
-        FMMTree->get_Location(*A, field);
+        FMMTree->get_Location(*A, field); // TODO: make sure filed list is the same as source list.
         FMMTree->get_Charge(*A, q);
 
         // Map all field points to the box ([-1 1])^3
@@ -526,7 +536,6 @@ void H2_3D_Compute<T>::DownwardPass(nodeT **A, vector3 *field, vector3 *source,
             }
             (*A)->nodePhi[i] += prefac3*sum;
         }
-
 
         
         // Due to near field interactions (comment out if you want to substract P2P interactions)

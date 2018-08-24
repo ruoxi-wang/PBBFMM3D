@@ -21,7 +21,8 @@ extern "C" {
 #include <stdio.h>
 #include <math.h>
 #include <string.h>
-#include<sys/time.h>
+#include <sys/time.h>
+
 
 // 3d point
 typedef struct _vector3 {
@@ -65,6 +66,13 @@ typedef struct _nodeT {
 	double *fieldval, *sourceval, *proxysval,*sourcefre;
 	int *fieldlist, *sourcelist;
 	int Nf, Ns, ineigh, iinter;
+	bool chargeComputed;
+	double* charge;
+	vector3* location;
+	bool neighborComputed[27];
+	bool locationComputed;
+	int max_neighbor_Ns;
+	double* nodePhi;
 } nodeT;
 
 
