@@ -257,7 +257,7 @@ void H2_3D_Tree::ComputeKernelCheb(double *Kweights, int n,double epsilon, doft 
     int n3 = n*n*n;            // n3 = n^3
     int dofn3_s = n3;
     int dofn3_f = n3;
-    int dof2n6 = dofn3_s * dofn3_f; // Total size
+    size_t dof2n6 = dofn3_s * dofn3_f; // Total size
     int Sigma_size;
     doft cutoff;
 	

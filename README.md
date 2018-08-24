@@ -32,6 +32,7 @@ Fong, William, and Eric Darve. "The black-box fast multipole methodshod." Journa
 	./README.md		:	This file  
 	./License.md	:	License file  
 	./Makefile		:	Makefile
+	./python                :       Python interface for BBFMM3D and REIG
 	
 ###3. TUTORIAL
 ####3.1 To Get Started  
