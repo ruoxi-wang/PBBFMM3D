@@ -9,9 +9,9 @@ class BaseWrap : public H2_3D_Tree, public wrapper<H2_3D_Tree>
     public:
     BaseWrap(double L, int level, int n, double epsilon, int use_chebyshev):H2_3D_Tree(L,level,n, epsilon, use_chebyshev){}
 
-    double EvaluateKernel(vector3& targetpos, vector3& sourcepos)
+    double EvaluateKernel(vector3& fieldpos, vector3& sourcepos)
     {
-         return this->get_override("EvaluateKernel")(boost::ref(targetpos), boost::ref(sourcepos));
+         return this->get_override("EvaluateKernel")(boost::ref(fieldpos), boost::ref(sourcepos));
     }
 };
 

@@ -41,7 +41,7 @@ void H2_3D_Tree::buildFMMTree() {
 
 
     vector3 center;
-    SetKernelProperty();
+    setKernelProperty();
     homogen = -homogen;
     // Compute the Chebyshev weights and sets up the lookup table
 
@@ -50,7 +50,7 @@ void H2_3D_Tree::buildFMMTree() {
     // Precompute the SVD of the kernel interaction matrix (if
     // necessary)
 
-    PrecomputeM2L(Kweights, L, alpha, &cutoff, n, homogen, epsilon, *dof,
+    GetM2L(Kweights, L, alpha, &cutoff, n, homogen, epsilon, *dof,
         level, &K, &U, &VT, use_chebyshev);
 
         // Builds the FMM hierarchy
@@ -71,7 +71,7 @@ void H2_3D_Tree::buildFMMTree() {
  * Prepare for the FMM calculation by pre-computing the SVD (if necessary),
  * and reading in the necessary matrices.
  */
-void H2_3D_Tree::PrecomputeM2L(double *Kweights, double boxLen, double alpha,
+void H2_3D_Tree::GetM2L(double *Kweights, double boxLen, double alpha,
         doft *cutoff, int n, int homogen,
         double epsilon, doft dof, int treeLevel,
         double **K, double **U, double **VT, int use_chebyshev) {
@@ -266,10 +266,10 @@ void H2_3D_Tree::ComputeKernelCheb(double *Kweights, int n,double epsilon, doft 
 	
     double *K0, *U0, *Sigma, *VT0;
     double *nodes, *work;
-    vector3 *targetpos;
+    vector3 *fieldpos;
 	
     K0 = (double *)malloc(316 * dof2n6 * sizeof(double));
-    targetpos  = (vector3 *)malloc(n3 * sizeof(vector3));
+    fieldpos  = (vector3 *)malloc(n3 * sizeof(vector3));
 	
     // 316 M2L operators
     double* Kcell[316];
@@ -283,16 +283,16 @@ void H2_3D_Tree::ComputeKernelCheb(double *Kweights, int n,double epsilon, doft 
     for (m=0;m<n;m++)
         nodes[m] = cos(pi*((double)m+0.5)/(double)n) * scale;
 	
-    // Compute the locations of the target points in a unit cube
+    // Compute the locations of the field points in a unit cube
     count = 0;
     for (l1=0;l1<n;l1++) {
         vtmp.x = 0.5 * nodes[l1] * boxLen;
         for (l2=0;l2<n;l2++) {
             vtmp.y = 0.5 * nodes[l2] * boxLen;
             for (l3=0;l3<n;l3++) {
-                targetpos[count].x = vtmp.x;
-                targetpos[count].y = vtmp.y;
-                targetpos[count].z = 0.5 * nodes[l3] * boxLen;
+                fieldpos[count].x = vtmp.x;
+                fieldpos[count].y = vtmp.y;
+                fieldpos[count].z = 0.5 * nodes[l3] * boxLen;
                 count++;
             }
         }
@@ -327,8 +327,8 @@ void H2_3D_Tree::ComputeKernelCheb(double *Kweights, int n,double epsilon, doft 
                             }
                         }
                         
-                        // Compute the kernel at each of the target Chebyshev nodes
-                        EvaluateKernelCell(targetpos, sourcepos, n3, n3, dof, kernel);
+                        // Compute the kernel at each of the field Chebyshev nodes
+                        EvaluateKernelCell(fieldpos, sourcepos, n3, n3, dof, kernel);
 
                         
                         // Copy the kernel values to the appropriate location
@@ -568,7 +568,7 @@ void H2_3D_Tree::ComputeKernelCheb(double *Kweights, int n,double epsilon, doft 
     free(U0);
     free(Sigma);
     free(nodes);
-    free(targetpos);
+    free(fieldpos);
     free(Ecell);
     free(work);
 
@@ -612,23 +612,23 @@ void H2_3D_Tree::ComputeKernelUnif(int n, doft dof, char *Kmat,
             countM2L =  (k1+3)*49+(k2+3)* 7 + (k3+3) - (min(max(k1 + 1, 0), 3) *9 +  
                         (-1 <= k1 && k1 <= 1 ? 1 : 0)* min(max(k2+1, 0), 3)*3 + 
                         (-1 <= k1 && k1 <= 1 ? 1 : 0)*(-1 <= k2 && k2 <= 1 ? 1 : 0) * min(max(k3 + 1, 0), 3));
-            vector3 scenter, targetpos, sourcepos;
+            vector3 scenter, fieldpos, sourcepos;
             scenter.x = (double)k1*len;
             scenter.y = (double)k2*len;
             scenter.z = (double)k3*len;
 
             int count=0;
             for (l1=0; l1<vecSize; l1++) {
-                GetPosition(n, l1, &targetpos.x, &sourcepos.x, nodes);
+                GetPosition(n, l1, &fieldpos.x, &sourcepos.x, nodes);
                 sourcepos.x += scenter.x;
                 for (l2=0; l2<vecSize; l2++) {
-                    GetPosition(n, l2, &targetpos.y, &sourcepos.y, nodes);
+                    GetPosition(n, l2, &fieldpos.y, &sourcepos.y, nodes);
                     sourcepos.y += scenter.y;
                     for (l3=0; l3<vecSize; l3++, count++) {
-                        GetPosition(n, l3, &targetpos.z, &sourcepos.z, nodes);
+                        GetPosition(n, l3, &fieldpos.z, &sourcepos.z, nodes);
                         sourcepos.z += scenter.z;
 
-                        MatM2L[countM2L*M2LSize+count] = EvaluateKernel(targetpos, sourcepos);
+                        MatM2L[countM2L*M2LSize+count] = EvaluateKernel(fieldpos, sourcepos);
 
                     }
                 }
@@ -675,16 +675,16 @@ void H2_3D_Tree::GridPos1d(double alpha, double len, int n, int use_chebyshev,
 
 
 /*
- * Given n node positions and returns corresponding target and source
+ * Given n node positions and returns corresponding field and source
  * positions with respect to the index
  */
-void H2_3D_Tree::GetPosition(int n, int idx, double *targetpos, double *sourcepos, double *nodepos) {
+void H2_3D_Tree::GetPosition(int n, int idx, double *fieldpos, double *sourcepos, double *nodepos) {
     
     if (idx < n) {
-        *targetpos  = nodepos[n-1]/2;
+        *fieldpos  = nodepos[n-1]/2;
         *sourcepos = nodepos[idx]/2;
     } else {
-        *targetpos  = nodepos[2*(n-1)-idx]/2;
+        *fieldpos  = nodepos[2*(n-1)-idx]/2;
         *sourcepos = nodepos[n-1]/2;
     }
     
@@ -697,13 +697,13 @@ void H2_3D_Tree::GetPosition(int n, int idx, double *targetpos, double *sourcepo
  * Evaluates the kernel for interactions between a pair of cells.
  * M2L operator initialization
  */
-void H2_3D_Tree::EvaluateKernelCell(vector3 *target, vector3 *source, int Nf,
+void H2_3D_Tree::EvaluateKernelCell(vector3 *field, vector3 *source, int Nf,
                         int Ns, doft *dof, double *kernel) {
 	int i, j;	
 	for (j=0;j<Ns;j++) {
         vector3 cur_source = source[j];
 		for (i=0;i<Nf;i++) {
-            kernel[i + Nf * j] = EvaluateKernel(target[i],cur_source);
+            kernel[i + Nf * j] = EvaluateKernel(field[i],cur_source);
 		}
 	}
 }
@@ -723,12 +723,12 @@ void H2_3D_Tree::ComputeWeights(double *Tkz, int *Ktable, double *Kweights,
 	vector3 vtmp;
 	
 	double *nodes, *vec;
-	vector3 *targett, *Sn;
+	vector3 *fieldt, *Sn;
 	nodes = (double *)malloc(n * sizeof(double));
 	vec   = (double *)malloc(n * sizeof(double));
 	int n3 = n*n*n;                     // n3 = n^3
 	int Nc = 2*n3;                      // Number of child Chebyshev nodes
-	targett = (vector3 *)malloc(Nc * sizeof(vector3));
+	fieldt = (vector3 *)malloc(Nc * sizeof(vector3));
     // Chebyshev-transformed coordinates
 	Sn     = (vector3 *)malloc(n * Nc * sizeof(vector3));
 	//double pi = M_PI;
@@ -793,9 +793,9 @@ void H2_3D_Tree::ComputeWeights(double *Tkz, int *Ktable, double *Kweights,
 		for (l1=0;l1<n;l1++) {
 			for (l2=0;l2<n;l2++) {
 				for (l3=0;l3<n;l3++) {
-                    targett[k].x = nodes[l1] * .5 + vtmp.x * scale;
-                    targett[k].y = nodes[l2] * .5 + vtmp.y * scale;
-                    targett[k].z = nodes[l3] * .5 + vtmp.z * scale;
+                    fieldt[k].x = nodes[l1] * .5 + vtmp.x * scale;
+                    fieldt[k].y = nodes[l2] * .5 + vtmp.y * scale;
+                    fieldt[k].z = nodes[l3] * .5 + vtmp.z * scale;
                     k++;
 				}
 			}
@@ -803,8 +803,8 @@ void H2_3D_Tree::ComputeWeights(double *Tkz, int *Ktable, double *Kweights,
 	}
 
     
-    // Compute Sc, the mapping function for the target points
-	ComputeSn(targett,Tkz,n,Nc,Sn, use_chebyshev);
+    // Compute Sc, the mapping function for the field points
+	ComputeSn(fieldt,Tkz,n,Nc,Sn, use_chebyshev);
 
     // Extract out the Chebyshev weights
 	count = 0;
@@ -825,7 +825,7 @@ void H2_3D_Tree::ComputeWeights(double *Tkz, int *Ktable, double *Kweights,
 
 	free(nodes);
 	free(vec);
-	free(targett);
+	free(fieldt);
 	free(Sn);
 
 }
@@ -1003,11 +1003,11 @@ void H2_3D_Tree::NewNode(nodeT **A, vector3 center, double L, int n) {
     }
 	(*A)->parent = NULL;
 	
-    (*A)->targetval  = NULL;
+    (*A)->fieldval  = NULL;
     (*A)->sourceval = NULL;
     (*A)->proxysval = NULL;
     (*A)->sourcefre = NULL;
-	(*A)->targetlist  = NULL;
+	(*A)->fieldlist  = NULL;
 	(*A)->sourcelist = NULL;
 	(*A)->center     = center;
 	(*A)->length     = L;
@@ -1065,24 +1065,24 @@ void H2_3D_Tree::FreeNode(nodeT *A) {
 		}
     }
 	
-	if (A->targetval != NULL)
-        free(A->targetval), A->targetval=NULL;
+	if (A->fieldval != NULL)
+        free(A->fieldval), A->fieldval=NULL;
 	if (A->sourceval != NULL)
         free(A->sourceval), A->sourceval=NULL;
 	if (A->proxysval != NULL)
         free(A->proxysval), A->proxysval=NULL;
 	if (A->sourcefre != NULL)
 	    free(A->sourcefre), A->sourcefre=NULL;
-	if (A->targetlist != NULL)
-        free(A->targetlist), A->targetlist=NULL;
+	if (A->fieldlist != NULL)
+        free(A->fieldlist), A->fieldlist=NULL;
 	if (A->sourcelist != NULL)
         free(A->sourcelist), A->sourcelist=NULL;
     if (A->location != NULL)
         free(A->location), A->location=NULL;
     if (A->charge != NULL)
         free(A->charge), A->charge=NULL;
-    if (A->targetlist != NULL)
-        free(A->targetlist), A->targetlist=NULL;
+    if (A->fieldlist != NULL)
+        free(A->fieldlist), A->fieldlist=NULL;
     if (A->nodePhi != NULL)
         free(A->nodePhi), A->nodePhi=NULL;
 	free(A);

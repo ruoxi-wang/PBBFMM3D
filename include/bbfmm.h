@@ -78,8 +78,8 @@ typedef struct _nodeT {
 	struct _nodeT *interaction[189];
 	vector3 center, cshiftneigh[27], cshiftinter[189];
 	double length;
-	double *targetval, *sourceval, *proxysval,*sourcefre;
-	int *targetlist, *sourcelist;
+	double *fieldval, *sourceval, *proxysval,*sourcefre;
+	int *fieldlist, *sourcelist;
 	int Nf, Ns, ineigh, iinter;
 	bool chargeComputed;
 	double* charge;
@@ -99,11 +99,11 @@ typedef struct _nodeT {
  * are vectors (not just scalars).
  * This struct stores information about the size of the input
  * vector (e.g., 1, 3, 9, etc) and the output vector (e.g., 1, 3, 6).
- * This is different from the number of source and target points.
+ * This is different from the number of source and field points.
  */
 typedef struct _dof_struct {
 	int s; // Size of source vector
-	int f; // Size of target vector
+	int f; // Size of field vector
 } doft; // Type of variable dof
 
 
@@ -113,7 +113,7 @@ typedef struct _dof_struct {
  */
 typedef struct _fmmparam {
 	int Ns;       // Number of sources
-	int Nf;       // Number of target points
+	int Nf;       // Number of field points
 	doft dof;        // Number of degrees of freedom
 	double L;        // Length of one side of simulation cube
 	int n;        // Number of Chebyshev nodes in one direction

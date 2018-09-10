@@ -12,11 +12,11 @@
 /*
  * Function: DirectCalc3D
  * ---------------------------------------------------------------------
- * Computes the potential at the first target point and returns
+ * Computes the potential at the first field point and returns
  * the result in phi.
  */
 template<typename T>
-void DirectCalc3D(T* FMMtree, vector3 *target, int Nf, vector3 *source, double *q, int m,
+void DirectCalc3D(T* FMMtree, vector3 *field, int Nf, vector3 *source, double *q, int m,
                   int Ns, int lpbc, double L,
                   double *phi) {
     for (int i = 0; i < Nf * FMMtree->dof->f; i++) {
@@ -39,7 +39,7 @@ void DirectCalc3D(T* FMMtree, vector3 *target, int Nf, vector3 *source, double *
     }
 
     // Compute the interactions inside the computational cell
-    //EvaluateField(target,source,q,Nf,Ns,dof,elasConst,phi);
+    //EvaluateField(field,source,q,Nf,Ns,dof,elasConst,phi);
     
     int dofNf = dof_f*Nf; //, dofNs = dof_s*Ns;
 
@@ -75,7 +75,7 @@ void DirectCalc3D(T* FMMtree, vector3 *target, int Nf, vector3 *source, double *
                 sourcepos.y = source[j].y + cshift.y;
                 sourcepos.z = source[j].z + cshift.z;
                 
-                FMMtree->EvaluateKernel(target[i],sourcepos,Kij,dof);
+                FMMtree->EvaluateKernel(field[i],sourcepos,Kij,dof);
                 for (k=0;k<dof2;k++) {
                     if (isinf(Kij[k])) {
                         Kij[k] = 0;
@@ -123,7 +123,7 @@ double testInterplationErr(T* Atree, int Ns, int Nf) {
     Atree->buildFMMTree();
     int  i, j, k=0;
     vector3 source[Ns];    // Position array for the source points
-    vector3 target[Nf];     // Position array for the target points
+    vector3 field[Nf];     // Position array for the field points
     double q[Ns*Atree->dof->s];  // Source array
     
     for (i=0;i<Ns;i++) {
@@ -141,20 +141,20 @@ double testInterplationErr(T* Atree, int Ns, int Nf) {
 		source[i].z = frand(-0.5,0.5)*size - 1.5*size;
 	}
     
-    // Randomly set target points
+    // Randomly set field points
 	for (i=0;i<Nf;i++) {
-		target[i].x = frand(-0.5,0.5)*size + 0.5*size;
-		target[i].y = frand(-0.5,0.5)*size + 0.5*size;
-		target[i].z = frand(-0.5,0.5)*size + 0.5*size;
+		field[i].x = frand(-0.5,0.5)*size + 0.5*size;
+		field[i].y = frand(-0.5,0.5)*size + 0.5*size;
+		field[i].z = frand(-0.5,0.5)*size + 0.5*size;
     }
     
     double *stress      =  new double[Nf*Atree->dof->f];// Field array (BBFMM calculation)
     double *stress_dir  =  new double[Nf*Atree->dof->f];// Field array (direct O(N^2) calculation)
 
     
-    H2_3D_Compute<T> compute(Atree, target, source, Ns, Nf, q,1, stress);
+    H2_3D_Compute<T> compute(Atree, field, source, Ns, Nf, q,1, stress);
 
-    DirectCalc3D(Atree, target, Nf, source, q, 1, Ns, Atree->dof,0 ,0, stress_dir);
+    DirectCalc3D(Atree, field, Nf, source, q, 1, Ns, Atree->dof,0 ,0, stress_dir);
 
     double err = ComputeError(stress,stress_dir,Nf,Atree->dof,1);
     delete []stress;

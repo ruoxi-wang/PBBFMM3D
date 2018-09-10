@@ -4,7 +4,7 @@
 
 #include"kernel_Types.hpp"
 
-void kernel_Laplacian::SetKernelProperty(string& kernelType, doft* dof) {
+void kernel_Laplacian::setKernelProperty(string& kernelType, doft* dof) {
     homogen = -1;
     symmetry = 1;
     kernelType =  "Laplacian";
@@ -12,16 +12,16 @@ void kernel_Laplacian::SetKernelProperty(string& kernelType, doft* dof) {
     dof->s = 1;
 }
 
-void kernel_Laplacian::EvaluateKernel(vector3 targetpos, vector3 sourcepos,
+void kernel_Laplacian::EvaluateKernel(vector3 fieldpos, vector3 sourcepos,
                     double *K, doft *dof){
     vector3 diff;
 	double rinv;
 
 	
     // Compute 1/r
-	diff.x = sourcepos.x - targetpos.x;
-	diff.y = sourcepos.y - targetpos.y;
-	diff.z = sourcepos.z - targetpos.z;
+	diff.x = sourcepos.x - fieldpos.x;
+	diff.y = sourcepos.y - fieldpos.y;
+	diff.z = sourcepos.z - fieldpos.z;
 	rinv   = 1./sqrt(diff.x*diff.x + diff.y*diff.y + diff.z*diff.z);
 	
     // Result = 1/r
@@ -30,7 +30,7 @@ void kernel_Laplacian::EvaluateKernel(vector3 targetpos, vector3 sourcepos,
 
 
 
-void kernel_LaplacianForce::SetKernelProperty(string& kernelType, doft* dof) {
+void kernel_LaplacianForce::setKernelProperty(string& kernelType, doft* dof) {
     homogen = -2;
     symmetry = -1;
     kernelType = "LaplacianForce";
@@ -38,15 +38,15 @@ void kernel_LaplacianForce::SetKernelProperty(string& kernelType, doft* dof) {
     dof->s = 9;
 }
 
-void kernel_LaplacianForce::EvaluateKernel(vector3 targetpos, vector3 sourcepos,
+void kernel_LaplacianForce::EvaluateKernel(vector3 fieldpos, vector3 sourcepos,
                                        double *K, doft *dof){
     vector3 diff;
 	double rinv;
 	
     // Compute 1/r
-	diff.x = sourcepos.x - targetpos.x;
-	diff.y = sourcepos.y - targetpos.y;
-	diff.z = sourcepos.z - targetpos.z;
+	diff.x = sourcepos.x - fieldpos.x;
+	diff.y = sourcepos.y - fieldpos.y;
+	diff.z = sourcepos.z - fieldpos.z;
 	rinv   = 1./sqrt(diff.x*diff.x + diff.y*diff.y + diff.z*diff.z);
 
     int idof, dof2 = dof->f*dof->s;
@@ -65,7 +65,7 @@ void kernel_LaplacianForce::EvaluateKernel(vector3 targetpos, vector3 sourcepos,
 }
 
 
-void kernel_OneOverR4::SetKernelProperty(string& kernelType, doft* dof) {
+void kernel_OneOverR4::setKernelProperty(string& kernelType, doft* dof) {
     homogen = -4;
     symmetry = 1;
     kernelType =  "OneOverR4";
@@ -73,22 +73,22 @@ void kernel_OneOverR4::SetKernelProperty(string& kernelType, doft* dof) {
     dof->s = 9;
 }
 
-void kernel_OneOverR4::EvaluateKernel(vector3 targetpos, vector3 sourcepos,
+void kernel_OneOverR4::EvaluateKernel(vector3 fieldpos, vector3 sourcepos,
                                        double *K, doft *dof){
     vector3 diff;
 	double rinv;
 	
     // Compute 1/r
-	diff.x = sourcepos.x - targetpos.x;
-	diff.y = sourcepos.y - targetpos.y;
-	diff.z = sourcepos.z - targetpos.z;
+	diff.x = sourcepos.x - fieldpos.x;
+	diff.y = sourcepos.y - fieldpos.y;
+	diff.z = sourcepos.z - fieldpos.z;
 	rinv   = 1./sqrt(diff.x*diff.x + diff.y*diff.y + diff.z*diff.z);
 	
     // Result = 1/r^4
 	*K = rinv*rinv*rinv*rinv;
 }
 
-void kernel_Gaussian::SetKernelProperty(string& kernelType, doft* dof) {
+void kernel_Gaussian::setKernelProperty(string& kernelType, doft* dof) {
     homogen = 0;
     symmetry = 1;
     kernelType =  "Gaussian";
@@ -96,21 +96,21 @@ void kernel_Gaussian::SetKernelProperty(string& kernelType, doft* dof) {
     dof->s = 1;
 }
 
-void kernel_Gaussian::EvaluateKernel(vector3 targetpos, vector3 sourcepos,
+void kernel_Gaussian::EvaluateKernel(vector3 fieldpos, vector3 sourcepos,
                                       double *K, doft *dof){
     vector3 diff;
 	
     // Compute r
-    diff.x = sourcepos.x - targetpos.x;
-    diff.y = sourcepos.y - targetpos.y;
-    diff.z = sourcepos.z - targetpos.z;
+    diff.x = sourcepos.x - fieldpos.x;
+    diff.y = sourcepos.y - fieldpos.y;
+    diff.z = sourcepos.z - fieldpos.z;
     
     double r = sqrt(diff.x*diff.x + diff.y*diff.y + diff.z*diff.z);
     *K = exp(-r*r);
 }
 
 
-void kernel_Logarithm::SetKernelProperty(string& kernelType, doft* dof) {
+void kernel_Logarithm::setKernelProperty(string& kernelType, doft* dof) {
     homogen = 0;
     symmetry = 1;
     kernelType =  "Logarithm";
@@ -118,13 +118,13 @@ void kernel_Logarithm::SetKernelProperty(string& kernelType, doft* dof) {
     dof->s = 1;
 }
 
-void kernel_Logarithm::EvaluateKernel(vector3 targetpos, vector3 sourcepos,
+void kernel_Logarithm::EvaluateKernel(vector3 fieldpos, vector3 sourcepos,
                                      double *K, doft *dof){
     vector3 diff;
 	
-    diff.x = sourcepos.x - targetpos.x;
-    diff.y = sourcepos.y - targetpos.y;
-    diff.z = sourcepos.z - targetpos.z;
+    diff.x = sourcepos.x - fieldpos.x;
+    diff.y = sourcepos.y - fieldpos.y;
+    diff.z = sourcepos.z - fieldpos.z;
 	double rSquare = diff.x*diff.x + diff.y*diff.y + diff.z*diff.z;
     if (rSquare == 0){
         *K = 0;
@@ -135,7 +135,7 @@ void kernel_Logarithm::EvaluateKernel(vector3 targetpos, vector3 sourcepos,
     //*K = (sourcepos.x + 1) * sourcepos.y * sourcepos.x;
 }
 
-void kernel_OneOverR2::SetKernelProperty(string& kernelType, doft* dof) {
+void kernel_OneOverR2::setKernelProperty(string& kernelType, doft* dof) {
     homogen = -2;
     symmetry = 1;
     kernelType =  "OneOverR2";
@@ -143,22 +143,22 @@ void kernel_OneOverR2::SetKernelProperty(string& kernelType, doft* dof) {
     dof->s = 1;
 }
 
-void kernel_OneOverR2::EvaluateKernel(vector3 targetpos, vector3 sourcepos,
+void kernel_OneOverR2::EvaluateKernel(vector3 fieldpos, vector3 sourcepos,
                                       double *K, doft *dof){
     vector3 diff;
 	double rinv;
 	
     // Compute 1/r
-	diff.x = sourcepos.x - targetpos.x;
-	diff.y = sourcepos.y - targetpos.y;
-	diff.z = sourcepos.z - targetpos.z;
+	diff.x = sourcepos.x - fieldpos.x;
+	diff.y = sourcepos.y - fieldpos.y;
+	diff.z = sourcepos.z - fieldpos.z;
 	rinv   = 1./sqrt(diff.x*diff.x + diff.y*diff.y + diff.z*diff.z);
 	
     // Result = 1/r^2
 	*K = rinv*rinv;
 }
 
-void kernel_Quadric::SetKernelProperty(string& kernelType, doft* dof) {
+void kernel_Quadric::setKernelProperty(string& kernelType, doft* dof) {
     homogen = 0;
     symmetry = 1;
     kernelType =  "Quadric";
@@ -166,17 +166,17 @@ void kernel_Quadric::SetKernelProperty(string& kernelType, doft* dof) {
     dof->s = 1;
 }
 
-void kernel_Quadric::EvaluateKernel(vector3 targetpos, vector3 sourcepos,
+void kernel_Quadric::EvaluateKernel(vector3 fieldpos, vector3 sourcepos,
                                       double *K, doft *dof){
     vector3 diff;
-	diff.x = sourcepos.x - targetpos.x;
-    diff.y = sourcepos.y - targetpos.y;
-    diff.z = sourcepos.z - targetpos.z;
+	diff.x = sourcepos.x - fieldpos.x;
+    diff.y = sourcepos.y - fieldpos.y;
+    diff.z = sourcepos.z - fieldpos.z;
 	double rSquare = diff.x*diff.x + diff.y*diff.y + diff.z*diff.z;
     *K = 1.0+rSquare;
 }
 
-void kernel_InverseQuadric::SetKernelProperty(string& kernelType, doft* dof) {
+void kernel_InverseQuadric::setKernelProperty(string& kernelType, doft* dof) {
     homogen = 0;
     symmetry = 1;
     kernelType =  "InverseQuadric";
@@ -184,17 +184,17 @@ void kernel_InverseQuadric::SetKernelProperty(string& kernelType, doft* dof) {
     dof->s = 1;
 }
 
-void kernel_InverseQuadric::EvaluateKernel(vector3 targetpos, vector3 sourcepos,
+void kernel_InverseQuadric::EvaluateKernel(vector3 fieldpos, vector3 sourcepos,
                                     double *K, doft *dof){
     vector3 diff;
-	diff.x = sourcepos.x - targetpos.x;
-    diff.y = sourcepos.y - targetpos.y;
-    diff.z = sourcepos.z - targetpos.z;
+	diff.x = sourcepos.x - fieldpos.x;
+    diff.y = sourcepos.y - fieldpos.y;
+    diff.z = sourcepos.z - fieldpos.z;
 	double rSquare = diff.x*diff.x + diff.y*diff.y + diff.z*diff.z;
     *K = 1.0/(1.0+rSquare);
 }
 
-void kernel_ThinPlateSpline::SetKernelProperty(string& kernelType, doft* dof) {
+void kernel_ThinPlateSpline::setKernelProperty(string& kernelType, doft* dof) {
     homogen = 0;
     symmetry = 1;
     kernelType =  "ThinPlateSpline";
@@ -202,12 +202,12 @@ void kernel_ThinPlateSpline::SetKernelProperty(string& kernelType, doft* dof) {
     dof->s = 1;
 }
 
-void kernel_ThinPlateSpline::EvaluateKernel(vector3 targetpos, vector3 sourcepos,
+void kernel_ThinPlateSpline::EvaluateKernel(vector3 fieldpos, vector3 sourcepos,
                                            double *K, doft *dof){
     vector3 diff;
-	diff.x = sourcepos.x - targetpos.x;
-    diff.y = sourcepos.y - targetpos.y;
-    diff.z = sourcepos.z - targetpos.z;
+	diff.x = sourcepos.x - fieldpos.x;
+    diff.y = sourcepos.y - fieldpos.y;
+    diff.z = sourcepos.z - fieldpos.z;
 	double rSquare = diff.x*diff.x + diff.y*diff.y + diff.z*diff.z;
     if (rSquare == 0){
         *K = 0;
@@ -219,7 +219,7 @@ void kernel_ThinPlateSpline::EvaluateKernel(vector3 targetpos, vector3 sourcepos
 }
 
 
-void kernel_Stokes::SetKernelProperty(string& kernelType, doft* dof) {
+void kernel_Stokes::setKernelProperty(string& kernelType, doft* dof) {
     homogen = -1;
     symmetry = 1;
     kernelType = "Stokes";
@@ -228,14 +228,14 @@ void kernel_Stokes::SetKernelProperty(string& kernelType, doft* dof) {
 
 }
 
-void kernel_Stokes::EvaluateKernel(vector3 targetpos, vector3 sourcepos,
+void kernel_Stokes::EvaluateKernel(vector3 fieldpos, vector3 sourcepos,
                                        double *K, doft *dof){
     double r[3];
     double rinv;
     
-    r[0] = sourcepos.x - targetpos.x;
-    r[1] = sourcepos.y - targetpos.y;
-    r[2] = sourcepos.z - targetpos.z;
+    r[0] = sourcepos.x - fieldpos.x;
+    r[1] = sourcepos.y - fieldpos.y;
+    r[2] = sourcepos.z - fieldpos.z;
     rinv   = 1./sqrt(r[0]*r[0]+r[1]*r[1]+r[2]*r[2]);
 
     // K is stored colum-wise    
