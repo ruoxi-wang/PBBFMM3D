@@ -17,7 +17,7 @@ BOOST_PYTHON_MODULE(FMMCompute)
    class_<std::vector<double> >("vector_double")
     .def(vector_indexing_suite<std::vector<double> >())
     ;
-   class_<H2_3D_Compute<myKernel>, boost::noncopyable>("Compute", init<myKernel& , std::vector<vector3>& , std::vector<vector3>&, int , int , std::vector<double>& ,int , std::vector<double>& >())
-   .def(init<myKernel& , std::vector<vector3>& , std::vector<vector3>&, int , int , std::vector<double>& ,int , std::vector<double>& >())
+   class_<H2_3D_Compute<myKernel>, boost::noncopyable>("Compute", init<myKernel& , std::vector<vector3>& , std::vector<vector3>&,  std::vector<double>& ,int , std::vector<double>& >())
+   .def(init<myKernel& , std::vector<vector3>& , std::vector<vector3>&, std::vector<double>& ,int , std::vector<double>& >())
         ;
 }   

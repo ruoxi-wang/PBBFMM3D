@@ -78,7 +78,7 @@ def main():
 
     print("Computing...")
     start = timeit.default_timer()
-    Compute(myTree, field, source, Ns, Nf, q, nCols, stress)
+    Compute(myTree, field, source, q, nCols, stress)
     tFMM = timeit.default_timer() - start
 
     # Checking accuracy

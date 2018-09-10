@@ -17,7 +17,7 @@
 template <typename T>
 class H2_3D_Compute {
 public:
-    H2_3D_Compute(T& FMMTree, std::vector<vector3>& field, std::vector<vector3>&source, int Ns, int Nf, std::vector<double>& charge,int m, std::vector<double>& stress); 
+    H2_3D_Compute(T& FMMTree, std::vector<vector3>& field, std::vector<vector3>&source, std::vector<double>& charge,int m, std::vector<double>& stress); 
     T* FMMTree;
     vector3 * field;
     vector3 * source;
@@ -63,7 +63,7 @@ public:
 
 
 template <typename T>
-H2_3D_Compute<T>::H2_3D_Compute(T &FMMTree, std::vector<vector3>& field, std::vector<vector3>& source, int Ns, int Nf, std::vector<double>& charge, int m, std::vector<double>&stress) {
+H2_3D_Compute<T>::H2_3D_Compute(T &FMMTree, std::vector<vector3>& field, std::vector<vector3>& source, std::vector<double>& charge, int m, std::vector<double>&stress) {
 
     if (FMMTree.computed == true) {
         if (FMMTree.tree != NULL) {
@@ -79,7 +79,8 @@ H2_3D_Compute<T>::H2_3D_Compute(T &FMMTree, std::vector<vector3>& field, std::ve
 
     }
     this->FMMTree   =   &FMMTree;
-
+    this->Ns = source.size();
+    this->Nf = field.size();
     // shift field and source pts s.t. they center around orign
     vector3 xmin;
     xmin.x = 1e32; xmin.y = 1e32; xmin.z = 1e32;

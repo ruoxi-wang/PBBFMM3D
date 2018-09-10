@@ -200,7 +200,7 @@ int main(int argc, char *argv[]) {
     /*****      FMM Computation     *******/
     // t0 = clock();
     t0 = omp_get_wtime(); 
-	H2_3D_Compute<myKernel> compute(Atree, field, source, Ns, Nf, q, m, stress);
+	H2_3D_Compute<myKernel> compute(Atree, field, source, q, m, stress);
 	// t1 = clock();
 	t1 = omp_get_wtime(); 
     double tFMM = t1 - t0;
