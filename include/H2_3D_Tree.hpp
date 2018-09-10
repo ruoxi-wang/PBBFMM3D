@@ -68,13 +68,13 @@ public:
     
     void ComputeTk(double x, int n, double *vec);
     
-    void EvaluateKernelCell(vector3 *field, vector3 *source, int Nf,
+    void EvaluateKernelCell(vector3 *target, vector3 *source, int Nf,
                             int Ns, doft *dof, double *kernel);
 	
     // Initialize arrays, K is the compressed M2L operator C^{(i)}
 	double *K, *U, *VT;
 	
-	/* U: U^k_r p. 8719; downward pass; field
+	/* U: U^k_r p. 8719; downward pass; target
 	 * V: S^K_r p. 8718; upward pass; source
 	 */
 	
@@ -89,11 +89,11 @@ public:
     
     void FreeNode(nodeT *A);
         
-    void GetPosition(int n, int idx, double *fieldpos, double *sourcepos, double *nodepos);
+    void GetPosition(int n, int idx, double *targetpos, double *sourcepos, double *nodepos);
     
-    virtual double EvaluateKernel(vector3& fieldpos, vector3& sourcepos) = 0;
+    virtual double EvaluateKernel(vector3& targetpos, vector3& sourcepos) = 0;
 
-    virtual void setKernelProperty(){};
+    virtual void SetKernelProperty(){};
     void get_Charge(nodeT*& node, double* q, int N, int m);
     void get_Location(nodeT*& node, vector3 *source);
     void compute_m2l_operator (int n, doft dof, int symmetry, char *Kmat, char *Umat, char *Vmat, double l, double alpha, double *Kweights, double epsilon, int grid_type, bool first_time_call);
@@ -101,7 +101,7 @@ public:
     bool IsHomoKernel( double homogen );
     bool PrecomputeAvailable( char *Kmat, char *Umat, char *Vmat, double homogen, double boxLen,
               int treeLevel, int grid_type );
-    void GetM2L(double *Kweights, double boxLen, double alpha,
+    void PrecomputeM2L(double *Kweights, double boxLen, double alpha,
         doft *cutoff, int n, int homogen,
         double epsilon, doft dof, int treeLevel,
         double **K, double **U, double **VT, int use_chebyshev);
