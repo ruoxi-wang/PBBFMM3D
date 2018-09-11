@@ -2,12 +2,12 @@
 #include "bbfmm3d.hpp"
 #include<iostream>
 
-void SetMetaData(double& L, int& n, int& Ns, int& Nf, int& nCols, int& level, double& eps, int& nx, int& ny, int& nz) {
+void SetMetaData(double& L, int& n, int& Ns, int& Nf, int& nCols, int& tree_level, double& eps, int& nx, int& ny, int& nz) {
 //		read from parameters.txt
 //    L   // Length of simulation cell (assumed to be a cube)
 //    n   // Number of Chebyshev nodes per dimension
 //    Ns  // Number of sources in simulation cell
-//    Nf  // Number of field points in simulation cell
+//    Nf  // Number of target points in simulation cell
 
 	ifstream fin;
 	
@@ -29,12 +29,12 @@ void SetMetaData(double& L, int& n, int& Ns, int& Nf, int& nCols, int& level, do
     ss << line;
     char comma;
     ss >> L >> comma >> n >> comma >> nx >> comma >> ny 
-		>> comma >> nz >> comma >> nCols >> comma >> level >> comma >> eps;
+		>> comma >> nz >> comma >> nCols >> comma >> tree_level >> comma >> eps;
     
 	fin.close();
 
 	Ns = nx*ny*nz;	// Number of sources in simulation cell
-	Nf = nx*ny*nz;	// Number of field points in simulation cell
+	Nf = nx*ny*nz;	// Number of target points in simulation cell
 }
 
 void read_xyz(const string& filenamex, int nx, const string& filenamey,int ny, const string& filenamez,int nz, vector<vector3>&xyz) {
@@ -98,7 +98,7 @@ void read_xyz(const string& filenamex, int nx, const string& filenamey,int ny, c
  * -------------------------------------------------------------------
  */
 
-void SetSources(std::vector<vector3>& field, int Nf, std::vector<vector3>& source, int Ns, std::vector<double>& weight, int nCols,
+void SetSources(std::vector<vector3>& target, int Nf, std::vector<vector3>& source, int Ns, std::vector<double>& weight, int nCols,
                 double L, int nx, int ny, int nz) {
 
 	int l, i, k=0;
@@ -113,26 +113,26 @@ void SetSources(std::vector<vector3>& field, int Nf, std::vector<vector3>& sourc
 	read_xyz("../input/xcoord.txt",nx,"../input/ycoord.txt",ny,"../input/zcoord.txt",nz, source);
 
 	for (i=0;i<Nf;i++) {
-		field[i].x = source[i].x;
-		field[i].y = source[i].y;
-		field[i].z = source[i].z;
+		target[i].x = source[i].x;
+		target[i].y = source[i].y;
+		target[i].z = source[i].z;
     }
 }
 
 class myKernel: public H2_3D_Tree {
 public:
-    myKernel(double L, int level, int n,  double epsilon, int use_chebyshev):H2_3D_Tree(L,level,n, epsilon, use_chebyshev){};
+    myKernel(double L, int tree_level, int n,  double epsilon, int use_chebyshev):H2_3D_Tree(L,tree_level,n, epsilon, use_chebyshev){};
     virtual void SetKernelProperty() {
         homogen = 0;
         symmetry = 1;
         kernelType = "myKernel";
     }
-    virtual double EvaluateKernel(vector3& fieldpos, vector3& sourcepos) {
+    virtual double EvaluateKernel(vector3& targetpos, vector3& sourcepos) {
         vector3 diff;        
         // Compute exp(-r)
-        diff.x = sourcepos.x - fieldpos.x;
-        diff.y = sourcepos.y - fieldpos.y;
-        diff.z = sourcepos.z - fieldpos.z;
+        diff.x = sourcepos.x - targetpos.x;
+        diff.y = sourcepos.y - targetpos.y;
+        diff.z = sourcepos.z - targetpos.z;
         double r = sqrt(diff.x*diff.x/100. + diff.y*diff.y/100. + diff.z*diff.z/2.25);
         return 0.75*exp(-r);
     }
@@ -147,23 +147,23 @@ int main(int argc, char *argv[]) {
     /**********************************************************/
     
     double L;       // Length of simulation cell (assumed to be a cube)
-    int n;          // Number of Chebyshev nodes per dimension
+    int interpolation_order;          // Number of Chebyshev nodes per dimension
     int Ns;         // Number of sources in simulation cell
-    int Nf;         // Number of field points in simulation cell
+    int Nf;         // Number of target points in simulation cell
     int nCols;
-    int level;
+    int tree_level;
     double eps;
     int use_chebyshev = 0;
     int nx,ny,nz;
 
 	// read data
-    SetMetaData(L, n, Ns, Nf, nCols, level, eps, nx, ny, nz);
+    SetMetaData(L, interpolation_order, Ns, Nf, nCols, tree_level, eps, nx, ny, nz);
 
 	std::vector<vector3> source(Ns); // Position array for the source points
-	std::vector<vector3> field(Nf);  // Position array for the field points
+	std::vector<vector3> target(Nf);  // Position array for the target points
 	std::vector<double> weight(Ns*nCols); // Source array
 
-	SetSources(field,Nf,source,Ns,weight,nCols, L,nx,ny,nz);
+	SetSources(target,Nf,source,Ns,weight,nCols, L,nx,ny,nz);
 
 
 
@@ -171,13 +171,13 @@ int main(int argc, char *argv[]) {
     std::vector<double> output(Nf*nCols);// Field array (BBFMM calculation)
     for (int i = 0; i < Nf*nCols; i++)
     	output[i] = 0; 				// TODO: check do we need to initialize
-	cout << "L                  		 : " << L << endl;
-	cout << "n (# chebyshev)    		 : " << n << endl;
-	cout << "Ns (=Nf)           		 : " << Ns << endl;
-	cout << "Nf (=Nf)           		 : " << Nf << endl;
-	cout << "nCols (# of cols in weight) : " << nCols << endl;
-	cout << "level              		 : " << level << endl;
-    cout << "eps                		 : " << eps << endl;
+	cout << "L                  		  : " << L << endl;
+	cout << "interpolation_order		  : " << interpolation_order << endl;
+	cout << "Ns (=Nf)           		  : " << Ns << endl;
+	cout << "Nf (=Nf)           		  : " << Nf << endl;
+	cout << "nCols (# of cols in weight)  : " << nCols << endl;
+	cout << "tree_level              	  : " << tree_level << endl;
+    cout << "eps                		  : " << eps << endl;
 
     /**********************************************************/
     /*                                                        */
@@ -188,7 +188,7 @@ int main(int argc, char *argv[]) {
     /*****      Pre Computation     ******/
     // clock_t  t0 = clock();
 	double t0 = omp_get_wtime(); 
-	myKernel Atree(L,level, n, eps, use_chebyshev);
+	myKernel Atree(L,tree_level, interpolation_order, eps, use_chebyshev);
     Atree.buildFMMTree();
 	// clock_t t1 = clock();
 	double t1 = omp_get_wtime();
@@ -199,7 +199,7 @@ int main(int argc, char *argv[]) {
     /*****      FMM Computation     *******/
     // t0 = clock();
     t0 = omp_get_wtime(); 
-	H2_3D_Compute<myKernel> compute(Atree, field, source, weight, nCols, output);
+	H2_3D_Compute<myKernel> compute(Atree, target, source, weight, nCols, output);
 	// t1 = clock();
 	t1 = omp_get_wtime(); 
     double tFMM = t1 - t0;
@@ -215,7 +215,7 @@ int main(int argc, char *argv[]) {
 		for (int i = 0; i < num_rows; i++) {
 			output_exact[k*num_rows+i] = 0;
 			for (int j = 0; j < Ns; j++) {
-				double val = Atree.EvaluateKernel(field[i], source[j]);
+				double val = Atree.EvaluateKernel(target[i], source[j]);
 				output_exact[k*num_rows+i] += val * weight[k*Nf+j];
 			}
 		}
