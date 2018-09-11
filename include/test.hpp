@@ -12,11 +12,11 @@
 /*
  * Function: DirectCalc3D
  * ---------------------------------------------------------------------
- * Computes the potential at the first field point and returns
+ * Computes the potential at the first target point and returns
  * the result in phi.
  */
 template<typename T>
-void DirectCalc3D(T* FMMtree, vector3 *field, int Nf, vector3 *source, double *q, int m,
+void DirectCalc3D(T* FMMtree, vector3 *target, int Nf, vector3 *source, double *weight, int nCols,
                   int Ns, int lpbc, double L,
                   double *phi) {
     for (int i = 0; i < Nf * FMMtree->dof->f; i++) {
@@ -39,7 +39,7 @@ void DirectCalc3D(T* FMMtree, vector3 *field, int Nf, vector3 *source, double *q
     }
 
     // Compute the interactions inside the computational cell
-    //EvaluateField(field,source,q,Nf,Ns,dof,elasConst,phi);
+    //EvaluateField(target,source,q,Nf,Ns,dof,elasConst,phi);
     
     int dofNf = dof_f*Nf; //, dofNs = dof_s*Ns;
 
@@ -75,15 +75,15 @@ void DirectCalc3D(T* FMMtree, vector3 *field, int Nf, vector3 *source, double *q
                 sourcepos.y = source[j].y + cshift.y;
                 sourcepos.z = source[j].z + cshift.z;
                 
-                FMMtree->EvaluateKernel(field[i],sourcepos,Kij,dof);
+                FMMtree->EvaluateKernel(target[i],sourcepos,Kij,dof);
                 for (k=0;k<dof2;k++) {
                     if (isinf(Kij[k])) {
                         Kij[k] = 0;
                     }
                 }
 
-                for (k = 0; k < m; k++) {
-                    dgemv_(trans,&dof_f,&dof_s,&alpha,Kij,&dof_f,q+Ns*dof_s*k+dof_s*j,&incr,&alpha,phi+Nf*dof_f*k+dof_f*i,&incr);
+                for (k = 0; k < nCols; k++) {
+                    dgemv_(trans,&dof_f,&dof_s,&alpha,Kij,&dof_f,weight+Ns*dof_s*k+dof_s*j,&incr,&alpha,phi+Nf*dof_f*k+dof_f*i,&incr);
                 }
 
             }
@@ -98,7 +98,7 @@ void DirectCalc3D(T* FMMtree, vector3 *field, int Nf, vector3 *source, double *q
     
 }
 
-double ComputeError(double *phi, double *phidir, int Nf, doft *dof, int m) {
+double ComputeError(double *phi, double *phidir, int Nf, doft *dof, int nCols) {
     
     // L2 relative error
     int i, j, dof_f = dof->f;
@@ -107,7 +107,7 @@ double ComputeError(double *phi, double *phidir, int Nf, doft *dof, int m) {
     sum1 = 0;
     sum2 = 0;
     
-    for (i=0;i<Nf*m;i++) {
+    for (i=0;i<Nf*nCols;i++) {
         for (j=0;j<dof_f;j++) {
             tmp = phi[i*dof_f+j]-phidir[i*dof_f+j];
             sum1 += tmp*tmp;
@@ -123,12 +123,12 @@ double testInterplationErr(T* Atree, int Ns, int Nf) {
     Atree->buildFMMTree();
     int  i, j, k=0;
     vector3 source[Ns];    // Position array for the source points
-    vector3 field[Nf];     // Position array for the field points
-    double q[Ns*Atree->dof->s];  // Source array
+    vector3 target[Nf];     // Position array for the target points
+    double weight[Ns*Atree->dof->s];  // Source array
     
     for (i=0;i<Ns;i++) {
         for (j=0; j<Atree->dof->s; j++, k++){
-            q[k] = frand(0,1);
+            weight[k] = frand(0,1);
         }
     }
     double size = Atree->L/4;
@@ -141,24 +141,24 @@ double testInterplationErr(T* Atree, int Ns, int Nf) {
 		source[i].z = frand(-0.5,0.5)*size - 1.5*size;
 	}
     
-    // Randomly set field points
+    // Randomly set target points
 	for (i=0;i<Nf;i++) {
-		field[i].x = frand(-0.5,0.5)*size + 0.5*size;
-		field[i].y = frand(-0.5,0.5)*size + 0.5*size;
-		field[i].z = frand(-0.5,0.5)*size + 0.5*size;
+		target[i].x = frand(-0.5,0.5)*size + 0.5*size;
+		target[i].y = frand(-0.5,0.5)*size + 0.5*size;
+		target[i].z = frand(-0.5,0.5)*size + 0.5*size;
     }
     
-    double *stress      =  new double[Nf*Atree->dof->f];// Field array (BBFMM calculation)
-    double *stress_dir  =  new double[Nf*Atree->dof->f];// Field array (direct O(N^2) calculation)
+    double *output      =  new double[Nf*Atree->dof->f];// Field array (BBFMM calculation)
+    double *output_dir  =  new double[Nf*Atree->dof->f];// Field array (direct O(N^2) calculation)
 
     
-    H2_3D_Compute<T> compute(Atree, field, source, Ns, Nf, q,1, stress);
+    H2_3D_Compute<T> compute(Atree, target, source, Ns, Nf, weight,1, output);
 
-    DirectCalc3D(Atree, field, Nf, source, q, 1, Ns, Atree->dof,0 ,0, stress_dir);
+    DirectCalc3D(Atree, target, Nf, source, weight, 1, Ns, Atree->dof,0 ,0, output_dir);
 
-    double err = ComputeError(stress,stress_dir,Nf,Atree->dof,1);
-    delete []stress;
-    delete []stress_dir;
+    double err = ComputeError(output,output_dir,Nf,Atree->dof,1);
+    delete []output;
+    delete []output_dir;
     cout << "Interplation error is: " << err << endl;
     return err;
 }

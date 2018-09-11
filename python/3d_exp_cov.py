@@ -6,7 +6,7 @@ from FMMCompute import *
 import numpy as np
 import timeit
 
-def load_data(file_xcoord, file_ycoord, file_zcoord, source, field, data_size, nCols, q):
+def load_data(file_xcoord, file_ycoord, file_zcoord, source, target, data_size, nCols, weight):
     xcoord = np.loadtxt(file_xcoord)
     ycoord = np.loadtxt(file_ycoord)
     zcoord = np.loadtxt(file_zcoord)
@@ -20,19 +20,19 @@ def load_data(file_xcoord, file_ycoord, file_zcoord, source, field, data_size, n
         for j in range(ny):
             for i in range(nx):
                 source.append(vector3(xcoord[i], ycoord[j], zcoord[k]))
-                field.append(vector3(xcoord[i], ycoord[j], zcoord[k]))
+                target.append(vector3(xcoord[i], ycoord[j], zcoord[k]))
  
     for l in range(nCols):
         for i in range(Ns):
-            q.append(1)
+            weight.append(1)
 
-def check_accuracy(myTree, num_rows, nCols, Ns, Nf, field, source, q, stress):
+def check_accuracy(myTree, num_rows, nCols, Ns, Nf, target, source, weight, stress):
     stress_exact = [0] * num_rows * nCols;
     for k in range(nCols):
         for i in range(num_rows):
             for j in range(Ns): 
-                val = myTree.EvaluateKernel(field[i], source[j]);
-                stress_exact[k*num_rows+i] += val * q[k*Nf+j];
+                val = myTree.EvaluateKernel(target[i], source[j]);
+                stress_exact[k*num_rows+i] += val * weight[k*Nf+j];
     diff, sum_Ax = 0, 0
     for k in range(nCols):
         for i in range(num_rows): 
@@ -42,32 +42,32 @@ def check_accuracy(myTree, num_rows, nCols, Ns, Nf, field, source, q, stress):
 
 
 def main():
-    field = vector_vector3()
+    target = vector_vector3()
     source = vector_vector3()
-    q = vector_double()
+    weight = vector_double()
     data_size = [None, None]
     nCols = 1
     print("Loading data...")
-    load_data("../input/xcoord.txt", "../input/ycoord.txt", "../input/zcoord.txt", source, field, data_size, nCols, q)
+    load_data("../input/xcoord.txt", "../input/ycoord.txt", "../input/zcoord.txt", source, target, data_size, nCols, weight)
     Ns, Nf = data_size
 
     print("Ns = %d, Nf = %d"% (Ns, Nf))
 
     # set FMM parameters
-    L, level, nChebNode, eps, use_chebyshev = 90, 6, 5, 1e-5, 0
+    L, tree_level, interpolation_order, eps, use_chebyshev = 90, 6, 5, 1e-5, 0
 
-    print("L                    : %3.3f"%L)
-    print("n (# chebyshev)      : %d"%nChebNode)
-    print("Ns (=Nf)             : %d"%Ns)
-    print("Nf (=Nf)             : %d"%Nf)
-    print("nCols(# of cols in q): %d"%nCols)
-    print("level                : %d"%level)
-    print("eps                  : %3.3e"%eps)
+    print("L                                     : %3.3f"%L)
+    print("interpolation_order (# chebyshev)     : %d"%interpolation_order)
+    print("Ns (=Nf)                              : %d"%Ns)
+    print("Nf (=Nf)                              : %d"%Nf)
+    print("nCols(# of cols in weight)            : %d"%nCols)
+    print("tree_level                            : %d"%tree_level)
+    print("eps                                   : %3.3e"%eps)
 
     # Build FMM Tree
     print("Building FMM Tree...")
     start = timeit.default_timer()
-    myTree = myKernel(L, level, nChebNode, eps, use_chebyshev)
+    myTree = myKernel(L, tree_level, interpolation_order, eps, use_chebyshev)
     myTree.buildFMMTree()
     tPre = timeit.default_timer() - start
 
@@ -78,12 +78,12 @@ def main():
 
     print("Computing...")
     start = timeit.default_timer()
-    Compute(myTree, field, source, q, nCols, stress)
+    Compute(myTree, target, source, weight, nCols, stress)
     tFMM = timeit.default_timer() - start
 
     # Checking accuracy
     num_rows = 10
-    check_accuracy(myTree, num_rows, nCols, Ns, Nf, field, source, q, stress)
+    check_accuracy(myTree, num_rows, nCols, Ns, Nf, target, source, weight, stress)
 
 
     print("Pre-computation time: %3.3f"%tPre)

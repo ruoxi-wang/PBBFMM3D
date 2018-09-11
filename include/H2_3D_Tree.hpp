@@ -16,12 +16,12 @@ using namespace std;
 class H2_3D_Tree{
 public:
     /*! Constructor of class H2_3D_Tree */
-    H2_3D_Tree( double L,  int level, int n, double
+    H2_3D_Tree( double L,  int tree_level, int interpolation_order, double
                epsilon, int use_chebyshev);
     doft* dof;
     double L;
-    int level;
-    int n;
+    int tree_level;
+    int interpolation_order;
     double epsilon;
 	nodeT *tree;    // Octree for FMM hierarchy
 	double homogen; // Order of kernel homogeneity
@@ -56,56 +56,56 @@ public:
     std::vector<nodeT*> cellPointers;
 	
     void buildFMMTree();
-    void ComputeKernelCheb(double *Kweights, int n,double epsilon, doft *dof, char*Kmat, char *Umat, char *Vmat, int symm, double alphaAdjust, double boxLen,  bool first_time_call);
+    void ComputeKernelCheb(double *Kweights, int interpolation_order,double epsilon, doft *dof, char*Kmat, char *Umat, char *Vmat, int symm, double alphaAdjust, double boxLen,  bool first_time_call);
     // void ComputeKernelUniformGrid(double *Kweights, int n, doft *dof,  char *Kmat, double alphaAdjust, rfftw_plan p_r2c);
-    void ComputeKernelUnif(int n, doft dof, char *Kmat, double alphaAdjust, double len);
+    void ComputeKernelUnif(int interpolation_order, doft dof, char *Kmat, double alphaAdjust, double len);
     void ComputeWeights(double *Tkz, int *Ktable, double *Kweights,
-                        double *Cweights, int n,double alpha, int use_chebyshev);
+                        double *Cweights, int interpolation_order,double alpha, int use_chebyshev);
     
-    void CalculateNodeLocations(int n, double* nodes, int use_chebyshev);
+    void CalculateNodeLocations(int interpolation_order, double* nodes, int use_chebyshev);
     
-    void ComputeSn(vector3 *point, double *Tkz, int n, int N, vector3 *Sn, int use_chebyshev);
+    void ComputeSn(vector3 *point, double *Tkz, int interpolation_order, int N, vector3 *Sn, int use_chebyshev);
     
-    void ComputeTk(double x, int n, double *vec);
+    void ComputeTk(double x, int interpolation_order, double *vec);
     
-    void EvaluateKernelCell(vector3 *field, vector3 *source, int Nf,
+    void EvaluateKernelCell(vector3 *target, vector3 *source, int Nf,
                             int Ns, doft *dof, double *kernel);
 	
     // Initialize arrays, K is the compressed M2L operator C^{(i)}
 	double *K, *U, *VT;
 	
-	/* U: U^k_r p. 8719; downward pass; field
+	/* U: U^k_r p. 8719; downward pass; target
 	 * V: S^K_r p. 8718; upward pass; source
 	 */
 	
     // Read kernel interaction matrix K and singular vectors U and VT
     void FMMReadMatrices(double **K, double **U, double **VT, doft *cutoff,
-             int n, doft dof, char *Kmat, char *Umat,
+             int interpolation_order, doft dof, char *Kmat, char *Umat,
              char *Vmat, int treeLevel, double homogen,
              int use_chebyshev);
-    void BuildFMMHierarchy(nodeT **A, int level, int n, doft *cutoff, doft *dof, int leafIndex, nodeT** indexToLeafPointer, std::vector<nodeT*>& cellPointers);
+    void BuildFMMHierarchy(nodeT **A, int tree_level, int interpolation_order, doft *cutoff, doft *dof, int leafIndex, nodeT** indexToLeafPointer, std::vector<nodeT*>& cellPointers);
     
-    void NewNode(nodeT **A, vector3 center, double L, int n);
+    void NewNode(nodeT **A, vector3 center, double L, int interpolation_order);
     
     void FreeNode(nodeT *A);
         
-    void GetPosition(int n, int idx, double *fieldpos, double *sourcepos, double *nodepos);
+    void GetPosition(int interpolation_order, int idx, double *targetpos, double *sourcepos, double *nodepos);
     
-    virtual double EvaluateKernel(vector3& fieldpos, vector3& sourcepos) = 0;
+    virtual double EvaluateKernel(vector3& targetpos, vector3& sourcepos) = 0;
 
-    virtual void setKernelProperty(){};
+    virtual void SetKernelProperty(){};
     void get_Charge(nodeT*& node, double* q, int N, int m);
     void get_Location(nodeT*& node, vector3 *source);
-    void compute_m2l_operator (int n, doft dof, int symmetry, char *Kmat, char *Umat, char *Vmat, double l, double alpha, double *Kweights, double epsilon, int grid_type, bool first_time_call);
-    void StartPrecompute(double boxLen, int treeLevel, int n, doft dof, int homogen, int symmetry, char *Kmat, char *Umat, char *Vmat, double alpha, double *Kweights, double epsilon, int use_chebyshev);
+    void compute_m2l_operator (int interpolation_order, doft dof, int symmetry, char *Kmat, char *Umat, char *Vmat, double l, double alpha, double *Kweights, double epsilon, int grid_type, bool first_time_call);
+    void StartPrecompute(double boxLen, int treeLevel, int interpolation_order, doft dof, int homogen, int symmetry, char *Kmat, char *Umat, char *Vmat, double alpha, double *Kweights, double epsilon, int use_chebyshev);
     bool IsHomoKernel( double homogen );
     bool PrecomputeAvailable( char *Kmat, char *Umat, char *Vmat, double homogen, double boxLen,
               int treeLevel, int grid_type );
-    void GetM2L(double *Kweights, double boxLen, double alpha,
-        doft *cutoff, int n, int homogen,
+    void PrecomputeM2L(double *Kweights, double boxLen, double alpha,
+        doft *cutoff, int interpolation_order, int homogen,
         double epsilon, doft dof, int treeLevel,
         double **K, double **U, double **VT, int use_chebyshev);
-    void GridPos1d(double alpha, double len, int n, int use_chebyshev,
+    void GridPos1d(double alpha, double len, int interpolation_order, int use_chebyshev,
            double* nodes);
 
 

@@ -2,7 +2,7 @@
 #include "bbfmm3d.hpp"
 #include<iostream>
 
-void SetMetaData(double& L, int& n, int& Ns, int& Nf, int& m, int& level, double& eps, int& nx, int& ny, int& nz) {
+void SetMetaData(double& L, int& n, int& Ns, int& Nf, int& nCols, int& level, double& eps, int& nx, int& ny, int& nz) {
 //		read from parameters.txt
 //    L   // Length of simulation cell (assumed to be a cube)
 //    n   // Number of Chebyshev nodes per dimension
@@ -29,7 +29,7 @@ void SetMetaData(double& L, int& n, int& Ns, int& Nf, int& m, int& level, double
     ss << line;
     char comma;
     ss >> L >> comma >> n >> comma >> nx >> comma >> ny 
-		>> comma >> nz >> comma >> m >> comma >> level >> comma >> eps;
+		>> comma >> nz >> comma >> nCols >> comma >> level >> comma >> eps;
     
 	fin.close();
 
@@ -98,15 +98,15 @@ void read_xyz(const string& filenamex, int nx, const string& filenamey,int ny, c
  * -------------------------------------------------------------------
  */
 
-void SetSources(std::vector<vector3>& field, int Nf, std::vector<vector3>& source, int Ns, std::vector<double>& q, int m,
+void SetSources(std::vector<vector3>& field, int Nf, std::vector<vector3>& source, int Ns, std::vector<double>& weight, int nCols,
                 double L, int nx, int ny, int nz) {
 
 	int l, i, k=0;
 	
     // vector of ones for now
-    for (l=0;l<m;l++) {
+    for (l=0;l<nCols;l++) {
         for (i=0;i<Ns;i++, k++) {
-                q[k] = 1.0;
+                weight[k] = 1.0;
         }
     }
 
@@ -122,7 +122,7 @@ void SetSources(std::vector<vector3>& field, int Nf, std::vector<vector3>& sourc
 class myKernel: public H2_3D_Tree {
 public:
     myKernel(double L, int level, int n,  double epsilon, int use_chebyshev):H2_3D_Tree(L,level,n, epsilon, use_chebyshev){};
-    virtual void setKernelProperty() {
+    virtual void SetKernelProperty() {
         homogen = 0;
         symmetry = 1;
         kernelType = "myKernel";
@@ -150,35 +150,34 @@ int main(int argc, char *argv[]) {
     int n;          // Number of Chebyshev nodes per dimension
     int Ns;         // Number of sources in simulation cell
     int Nf;         // Number of field points in simulation cell
-    int m;
+    int nCols;
     int level;
     double eps;
     int use_chebyshev = 0;
     int nx,ny,nz;
 
 	// read data
-    SetMetaData(L, n, Ns, Nf, m, level, eps, nx, ny, nz);
+    SetMetaData(L, n, Ns, Nf, nCols, level, eps, nx, ny, nz);
 
 	std::vector<vector3> source(Ns); // Position array for the source points
 	std::vector<vector3> field(Nf);  // Position array for the field points
-	std::vector<double> q(Ns*m); // Source array
+	std::vector<double> weight(Ns*nCols); // Source array
 
-	SetSources(field,Nf,source,Ns,q,m, L,nx,ny,nz);
-	//cout << "q[0] : " << q[0] << " q[end] : " << q[Ns-1] << endl;
+	SetSources(field,Nf,source,Ns,weight,nCols, L,nx,ny,nz);
 
 
 
 	//double err;
-    std::vector<double> stress(Nf*m);// Field array (BBFMM calculation)
-    for (int i = 0; i < Nf*m; i++)
-    	stress[i] = 0; 				// TODO: check do we need to initialize
-	cout << "L                  : " << L << endl;
-	cout << "n (# chebyshev)    : " << n << endl;
-	cout << "Ns (=Nf)           : " << Ns << endl;
-	cout << "Nf (=Nf)           : " << Nf << endl;
-	cout << "m (# of cols in q) : " << m << endl;
-	cout << "level              : " << level << endl;
-    cout << "eps                : " << eps << endl;
+    std::vector<double> output(Nf*nCols);// Field array (BBFMM calculation)
+    for (int i = 0; i < Nf*nCols; i++)
+    	output[i] = 0; 				// TODO: check do we need to initialize
+	cout << "L                  		 : " << L << endl;
+	cout << "n (# chebyshev)    		 : " << n << endl;
+	cout << "Ns (=Nf)           		 : " << Ns << endl;
+	cout << "Nf (=Nf)           		 : " << Nf << endl;
+	cout << "nCols (# of cols in weight) : " << nCols << endl;
+	cout << "level              		 : " << level << endl;
+    cout << "eps                		 : " << eps << endl;
 
     /**********************************************************/
     /*                                                        */
@@ -200,7 +199,7 @@ int main(int argc, char *argv[]) {
     /*****      FMM Computation     *******/
     // t0 = clock();
     t0 = omp_get_wtime(); 
-	H2_3D_Compute<myKernel> compute(Atree, field, source, q, m, stress);
+	H2_3D_Compute<myKernel> compute(Atree, field, source, weight, nCols, output);
 	// t1 = clock();
 	t1 = omp_get_wtime(); 
     double tFMM = t1 - t0;
@@ -211,29 +210,29 @@ int main(int argc, char *argv[]) {
 	int num_rows = 10;
 	cout << "Checking accuracy of first " << num_rows << " values" << endl;
 
-	double stress_exact[num_rows*m];
-	for (int k = 0; k < m; k++)
+	double output_exact[num_rows*nCols];
+	for (int k = 0; k < nCols; k++)
 		for (int i = 0; i < num_rows; i++) {
-			stress_exact[k*num_rows+i] = 0;
+			output_exact[k*num_rows+i] = 0;
 			for (int j = 0; j < Ns; j++) {
 				double val = Atree.EvaluateKernel(field[i], source[j]);
-				stress_exact[k*num_rows+i] += val * q[k*Nf+j];
+				output_exact[k*num_rows+i] += val * weight[k*Nf+j];
 			}
 		}
 
 	double diff = 0;
 	double sum_Ax = 0;
-	for (int k = 0; k < m; k++)
+	for (int k = 0; k < nCols; k++)
 		for (int i=0;i<num_rows ;i++ )
 		{	
-			diff += (stress[k*Nf+i] - stress_exact[k*num_rows+i])*(stress[k*Nf+i] - stress_exact[k*num_rows+i]); 
-			sum_Ax += stress_exact[k*num_rows+i] * stress_exact[k*num_rows+i];
+			diff += (output[k*Nf+i] - output_exact[k*num_rows+i])*(output[k*Nf+i] - output_exact[k*num_rows+i]); 
+			sum_Ax += output_exact[k*num_rows+i] * output_exact[k*num_rows+i];
 		}
 	cout << "diff of first 10 values = " << sqrt(diff) / sqrt(sum_Ax) << endl;
 
 	/*****      output result to binary file    ******/
-    string outputfilename = "../output/stress.bin";
-    write_Into_Binary_File(outputfilename, &stress[0], m*Nf);
+    string outputfilename = "../output/output.bin";
+    write_Into_Binary_File(outputfilename, &output[0], nCols*Nf);
     
 	cout << "Pre-computation time: " << tPre << endl;
     cout << "FMM computing time:   " << tFMM  << endl;

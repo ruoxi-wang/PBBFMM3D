@@ -1,12 +1,12 @@
 /*!\file	read_sources.cpp
- source file to field, source and charge information from binary files.
+ source file to target, source and charge information from binary files.
 */
 
 #include"read_sources.hpp"
 #include"environment.hpp"
 using namespace std;
 
-void read_Sources(const string& filenameField, vector3 *field, const int& Nf, const string& filenameSource, vector3 *source, const int& Ns, const string& filenameCharge, double *q, const int& m, const doft& dof) {
+void read_Sources(const string& filenameField, vector3 *target, const int& Nf, const string& filenameSource, vector3 *source, const int& Ns, const string& filenameCharge, double *weight, const int& nCols, const doft& dof) {
     ifstream fin;
 
     /* Read source */
@@ -19,18 +19,18 @@ void read_Sources(const string& filenameField, vector3 *field, const int& Nf, co
     for (int k = 0; k < 3; k++) {
         for (int i = 0; i < Nf; i++) {
             if (k == 0 ) {
-                fin.read((char*) &field[i].x, sizeof(double));
+                fin.read((char*) &target[i].x, sizeof(double));
             }else if ( k == 1 ) {
-                fin.read((char*) &field[i].y, sizeof(double));
+                fin.read((char*) &target[i].y, sizeof(double));
             }else {
-                fin.read((char*) &field[i].z, sizeof(double));
+                fin.read((char*) &target[i].z, sizeof(double));
             }
             
         }
     }
 	fin.close();
     
-    /* Read field */
+    /* Read target */
     fin.open(filenameSource.c_str(),ios::binary);
 	if (!fin.good()){
 		cerr << "Failed to open file " << filenameSource << endl;
@@ -56,6 +56,6 @@ void read_Sources(const string& filenameField, vector3 *field, const int& Nf, co
 		cerr << "Failed to open file " << filenameCharge << endl;
 		throw runtime_error("Failed to open file!");
 	}
-    fin.read((char*) q, m*Ns*dof.s*sizeof(double));
+    fin.read((char*) weight, nCols*Ns*dof.s*sizeof(double));
     fin.close();
 }
