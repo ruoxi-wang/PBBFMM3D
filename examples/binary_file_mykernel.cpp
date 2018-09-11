@@ -3,23 +3,20 @@
 
 class myKernel: public H2_3D_Tree {
 public:
-    myKernel(double L, int level, int n, double epsilon,int use_chebyshev):H2_3D_Tree(L,level,n,epsilon,use_chebyshev){};
-    virtual void setHomogen(string& kernelType, doft* dof) {
+    myKernel(double L, int tree_level, int interpolation_order, double epsilon,int use_chebyshev):H2_3D_Tree(L,tree_level,interpolation_order,epsilon,use_chebyshev){};
+    virtual void SetKernelProperty() {
         homogen = -1;
         symmetry = 1;
         kernelType = "myKernel";
-        dof->f = 1;
-        dof->s = 1;
     }
-    virtual void EvaluateKernel(vector3 fieldpos, vector3 sourcepos,
-                                double *K, doft *dof) {
+    virtual double EvaluateKernel(vector3& targetpos, vector3& sourcepos) {
         vector3 diff;        
         // Compute 1/r
-        diff.x = sourcepos.x - fieldpos.x;
-        diff.y = sourcepos.y - fieldpos.y;
-        diff.z = sourcepos.z - fieldpos.z;
+        diff.x = sourcepos.x - targetpos.x;
+        diff.y = sourcepos.y - targetpos.y;
+        diff.z = sourcepos.z - targetpos.z;
         double r = sqrt(diff.x*diff.x + diff.y*diff.y + diff.z*diff.z);
-        *K = 1. / r;
+        return 1. / r;
 
     }
 };
@@ -32,29 +29,29 @@ int main(int argc, char *argv[]) {
     /*                                                        */
     /**********************************************************/
     
-    double L;       // Length of simulation cell (assumed to be a cube)
-    int n;          // Number of Chebyshev nodes per dimension
+    double L;                   // Length of simulation cell (assumed to be a cube)
+    int interpolation_order;    // Number of interpolation nodes per dimension
     doft dof;
-    int Ns;         // Number of sources in simulation cell
-    int Nf;         // Number of field points in simulation cell
-    int m;
-    int level;
-    double eps = 1e-9 ;
+    int Ns;                     // Number of sources in simulation cell
+    int Nf;                     // Number of targes in simulation cell
+    int nCols;
+    int tree_level;
+    double eps = 1e-5 ;
     int use_chebyshev = 1;
     
     string filenameMetadata = "./../input/metadata_test.txt";
-    read_Metadata(filenameMetadata, L, n, dof, Ns, Nf, m, level);
-    vector3 *source = new vector3[Ns];    // Position array for the source points
-    vector3 *field = new vector3[Nf];     // Position array for the field points
-    double *q =  new double[Ns*dof.s*m];  // Source array
+    read_Metadata(filenameMetadata, L, interpolation_order, Ns, Nf, nCols, tree_level);
+    std::vector<vector3> source(Ns); // Position array for the source points
+    std::vector<vector3> target(Nf);  // Position array for the target points
+    std::vector<double> weight(Ns*nCols); // Source array
+    cout << "dfsaf" << endl;
 
     string filenameField  = "./../input/field_test.bin";
     string filenameSource = "./../input/source_test.bin";
     string filenameCharge = "./../input/charge_test.bin";
-    read_Sources(filenameField,field,Nf,filenameSource,source,Ns,filenameCharge,q,m,dof);
+    read_Sources(filenameField,target,Nf,filenameField,source,Ns,filenameCharge,weight,nCols);
     double err;
-    double *stress      =  new double[Nf*dof.f*m];// Field array (BBFMM calculation)
-    double *stress_dir  =  new double[Nf*dof.f*m]();// Field array (direct O(N^2) calculation)
+    std::vector<double> output(Nf*nCols);
 
 
     
@@ -65,49 +62,45 @@ int main(int argc, char *argv[]) {
     /**********************************************************/
     
     /*****      Pre Computation     ******/
-    clock_t  t0 = clock();
-    myKernel Atree(L,level, n, eps, use_chebyshev);
+    double t0 = omp_get_wtime(); 
+    myKernel Atree(L, tree_level, interpolation_order, eps, use_chebyshev);
     Atree.buildFMMTree();
-    clock_t t1 = clock();
+    double t1 = omp_get_wtime(); 
     double tPre = t1 - t0;
-
     /*****      FMM Computation     ******/
-    /*(this part can be repeated with different source, field and charge)*/
+    /*(this part can be repeated with different source, target and charge)*/
     
-    t0 = clock();
-    H2_3D_Compute<myKernel> compute(&Atree, field, source, Ns, Nf, q,m, stress);
-    t1 = clock();
+    t0 = omp_get_wtime(); 
+    H2_3D_Compute<myKernel> compute(Atree, target, source, weight, nCols, output);
+    t1 = omp_get_wtime(); 
     double tFMM = t1 - t0;
 
 
-
     /*****      output result to binary file    ******/
-    string outputfilename = "../output/stress.bin";
-    write_Into_Binary_File(outputfilename, stress, m*Nf*dof.f);
+    string outputfilename = "../output/output.bin";
+    write_Into_Binary_File(outputfilename, &output[0], nCols*Nf);
     /**********************************************************/
     /*                                                        */
     /*              Exact matrix vector product               */
     /*                                                        */
     /**********************************************************/
-    t0 = clock();
-    DirectCalc3D(&Atree, field, Nf, source, q, m, Ns, 0 , L, stress_dir);
-    t1 = clock();
+
+    int num_rows = 100; // calculate first 100 rows.
+    std::vector<double> output_dir(num_rows*nCols);
+
+    t0 = omp_get_wtime(); 
+    DirectCalc3D(&Atree, target, source, weight, nCols, output_dir, num_rows);
+    t1 = omp_get_wtime(); 
     double tExact = t1 - t0;
-    
-    cout << "Pre-computation time: " << double(tPre) / double(CLOCKS_PER_SEC) << endl;
-    cout << "FMM computing time:   " << double(tFMM) / double(CLOCKS_PER_SEC)  << endl;
-    cout << "Exact computing time: " << double(tExact) / double(CLOCKS_PER_SEC)  << endl;
-    
+
     // Compute the 2-norm error
-    err = ComputeError(stress,stress_dir,Nf,&dof,m);
-    cout << "Relative Error: "  << err << endl;
+    err = ComputeError(output,output_dir,Nf,nCols, num_rows);
+    cout << "Relative Error for first " <<  num_rows  << " : " << err << endl;
+
     
-    /*******            Clean Up        *******/
-    
-    delete []stress;
-    delete []stress_dir;    
-    delete []source;
-    delete []field;
-    delete []q;
+    cout << "Pre-computation time: " << tPre << endl;
+    cout << "FMM computing time:   " << tFMM << endl;
+    cout << "Exact computing time: " << tExact  << endl;    
+  
     return 0;
 }

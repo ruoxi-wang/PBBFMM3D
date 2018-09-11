@@ -1,8 +1,8 @@
 
 #include "bbfmm3d.hpp"
-#include<iostream>
+#include <iostream>
 
-void SetMetaData(double& L, int& n, int& Ns, int& Nf, int& nCols, int& tree_level, double& eps, int& nx, int& ny, int& nz) {
+void SetMetaData(double& L, int& interpolation_order, int& Ns, int& Nf, int& nCols, int& tree_level, double& eps, int& nx, int& ny, int& nz) {
 //		read from parameters.txt
 //    L   // Length of simulation cell (assumed to be a cube)
 //    n   // Number of Chebyshev nodes per dimension
@@ -28,7 +28,7 @@ void SetMetaData(double& L, int& n, int& Ns, int& Nf, int& nCols, int& tree_leve
     stringstream ss;
     ss << line;
     char comma;
-    ss >> L >> comma >> n >> comma >> nx >> comma >> ny 
+    ss >> L >> comma >> interpolation_order >> comma >> nx >> comma >> ny 
 		>> comma >> nz >> comma >> nCols >> comma >> tree_level >> comma >> eps;
     
 	fin.close();
@@ -121,7 +121,7 @@ void SetSources(std::vector<vector3>& target, int Nf, std::vector<vector3>& sour
 
 class myKernel: public H2_3D_Tree {
 public:
-    myKernel(double L, int tree_level, int n,  double epsilon, int use_chebyshev):H2_3D_Tree(L,tree_level,n, epsilon, use_chebyshev){};
+    myKernel(double L, int tree_level, int interpolation_order,  double epsilon, int use_chebyshev):H2_3D_Tree(L,tree_level,interpolation_order, epsilon, use_chebyshev){};
     virtual void SetKernelProperty() {
         homogen = 0;
         symmetry = 1;
@@ -207,28 +207,18 @@ int main(int argc, char *argv[]) {
 	cout << "Fmm computation finished" << endl;
 
 	/***  check accuracy ***/
-	int num_rows = 10;
-	cout << "Checking accuracy of first " << num_rows << " values" << endl;
+	int num_rows = 100; // calculate first 100 rows.
+    std::vector<double> output_dir(num_rows*nCols);
 
-	double output_exact[num_rows*nCols];
-	for (int k = 0; k < nCols; k++)
-		for (int i = 0; i < num_rows; i++) {
-			output_exact[k*num_rows+i] = 0;
-			for (int j = 0; j < Ns; j++) {
-				double val = Atree.EvaluateKernel(target[i], source[j]);
-				output_exact[k*num_rows+i] += val * weight[k*Nf+j];
-			}
-		}
+    t0 = omp_get_wtime(); 
+    DirectCalc3D(&Atree, target, source, weight, nCols, output_dir, num_rows);
+    t1 = omp_get_wtime(); 
+    double tExact = t1 - t0;
 
-	double diff = 0;
-	double sum_Ax = 0;
-	for (int k = 0; k < nCols; k++)
-		for (int i=0;i<num_rows ;i++ )
-		{	
-			diff += (output[k*Nf+i] - output_exact[k*num_rows+i])*(output[k*Nf+i] - output_exact[k*num_rows+i]); 
-			sum_Ax += output_exact[k*num_rows+i] * output_exact[k*num_rows+i];
-		}
-	cout << "diff of first 10 values = " << sqrt(diff) / sqrt(sum_Ax) << endl;
+    // Compute the 2-norm error
+    double err = ComputeError(output,output_dir,Nf,nCols, num_rows);
+    cout << "Relative Error for first " <<  num_rows  << " : " << err << endl;
+
 
 	/*****      output result to binary file    ******/
     string outputfilename = "../output/output.bin";
