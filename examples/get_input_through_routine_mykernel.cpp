@@ -91,7 +91,6 @@ int main(int argc, char *argv[]) {
                 use_chebyshev = atoi(argv[++i]);
         }
     }
-    cout << interpolation_order << " " << Ns << " " << L << " " << nCols << " " << tree_level << " " << eps << " " << use_chebyshev << endl;
 
     std::vector<vector3> source(Ns); // Position array for the source points
     std::vector<vector3> target(Nf);  // Position array for the target points
@@ -125,7 +124,7 @@ int main(int argc, char *argv[]) {
 
    /******      Check accuracy      *******/
 
-    int num_rows = 100;
+    int num_rows = Nf;
     std::vector<double> output_dir(num_rows*nCols);// Field array (direct O(N^2) calculation)
 
     t0 = omp_get_wtime();   

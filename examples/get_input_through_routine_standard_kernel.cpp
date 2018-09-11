@@ -1,58 +1,39 @@
-
 #include "bbfmm3d.hpp"
-
-
-void SetMetaData(double& L, int& n, doft& dof, int& Ns, int& Nf, int& m, int& level, double& eps) {
-    L       = 1;    // Length of simulation cell (assumed to be a cube)
-    n       = 3;    // Number of Chebyshev nodes per dimension
-    dof.f   = 1;
-    dof.s   = 1;
-    Ns      = 5000;  // Number of sources in simulation cell
-    Nf      = 5000;  // Number of field points in simulation cell
-    m       = 1;
-    level   = 2;
-    eps     = 1e-9;
-}
-
+#include "stdint.h"
 /*
- * Function: SetSources 
+ * Function: SetSources
  * -------------------------------------------------------------------
  * Distributes an equal number of positive and negative charges uniformly
  * in the simulation cell ([-0.5*L,0.5*L])^3 and take these same locations
- * as the field points.
+ * as the target points.
  */
 
-void SetSources(vector3 *field, int Nf, vector3 *source, int Ns, double *q, int m,
-                doft *dof, double L) {
-	
-	int l, i, j, k=0;
-	
-    // Distributes the sources randomly uniformly in a cubic cell
-    for (l=0;l<m;l++) {
-        for (i=0;i<Ns;i++) {
-            for (j=0; j<dof->s; j++, k++){
-                q[k] = frand(0,1);
-            }
-        }
+void SetSources(std::vector<vector3>& target, int Nf, std::vector<vector3>& source, int Ns, std::vector<double>& weight, int nCols,
+                double L) {
     
+    int l, i, j, k=0;
+    
+    // Distributes the sources randomly uniformly in a cubic cell
+    for (l=0;l<nCols;l++) {
+        for (i=0;i<Ns;i++) {
+            weight[k] = frand(0,1);
+            k += 1;
+        }
     }
     
     for (i=0;i<Ns;i++) {
-		
-		source[i].x = frand(-0.5,0.5)*L;
-		source[i].y = frand(-0.5,0.5)*L;
-		source[i].z = frand(-0.5,0.5)*L;
-	}
-
-    // Randomly set field points
-	for (i=0;i<Nf;i++) {
-		field[i].x = frand(-0.5,0.5)*L;
-		field[i].y = frand(-0.5,0.5)*L;
-		field[i].z = frand(-0.5,0.5)*L;
+        source[i].x = frand(-0.5,0.5)*L;
+        source[i].y = frand(-0.5,0.5)*L;
+        source[i].z = frand(-0.5,0.5)*L;
     }
+    
+    for (i=0;i<Nf;i++) {
+        target[i].x = source[i].x;
+        target[i].y = source[i].y;
+        target[i].z = source[i].z;
+    }
+
 }
-
-
 
 int main(int argc, char *argv[]) {
     /**********************************************************/
@@ -60,31 +41,47 @@ int main(int argc, char *argv[]) {
     /*              Initializing the problem                  */
     /*                                                        */
     /**********************************************************/
-    
-    double L;       // Length of simulation cell (assumed to be a cube)
-    int n;          // Number of Chebyshev nodes per dimension
-    doft dof;
-    int Ns;         // Number of sources in simulation cell
-    int Nf;         // Number of field points in simulation cell
-    int m;
-    int level;
+    double L;                   // Length of simulation cell (assumed to be a cube)
+    int interpolation_order;    // Number of interpolation nodes per dimension
+    int Ns;                     // Number of sources in simulation cell
+    int Nf;                     // Number of targets in simulation cell
+    int nCols;
+    int tree_level;
     double eps;
-    int use_chebyshev = 1;
-    
-    SetMetaData(L, n, dof, Ns, Nf, m, level, eps);
-    
-    
-    vector3* source = new vector3[Ns];    // Position array for the source points
-    vector3* field = new vector3[Nf];     // Position array for the field points
-    double *q = new double[Ns*dof.s*m];  // Source array
-    
-    SetSources(field,Nf,source,Ns,q,m,&dof,L);
-    
-    double err;
-    double *stress      =  new double[Nf*dof.f*m];// Field array (BBFMM calculation)
-    double *stress_dir  =  new double[Nf*dof.f*m];// Field array (direct O(N^2) calculation)*/
+    int use_chebyshev;
+
+      // parse input arguments
+    if (argc > 1) {
+        for (int i = 1; i < argc; i++) {
+            if (!strcmp(argv[i],"-n"))
+                interpolation_order = atoi(argv[++i]);
+            if (!strcmp(argv[i],"-N")){
+                Ns = atof(argv[++i]);
+                Nf = Ns;
+            }
+            if (!strcmp(argv[i],"-L"))
+                L = atof(argv[++i]);
+            if (!strcmp(argv[i],"-m"))
+                nCols = atoi(argv[++i]);
+            if (!strcmp(argv[i],"-level"))
+                tree_level = atoi(argv[++i]);
+            if (!strcmp(argv[i],"-eps"))
+                eps = atof(argv[++i]);
+            if (!strcmp(argv[i],"-cheb"))
+                use_chebyshev = atoi(argv[++i]);
+        }
+    }
+
+    std::vector<vector3> source(Ns); // Position array for the source points
+    std::vector<vector3> target(Nf);  // Position array for the target points
+    std::vector<double> weight(Ns*nCols); // Source array
+    SetSources(target,Nf,source,Ns,weight,nCols,L);
 
 
+    std::vector<double> output(Nf*nCols);   // Field array (BBFMM calculation)    
+    
+    for (int i = 0; i < Nf*nCols; i++)
+        output[i] = 0;                          // TODO: check do we need to initialize
     
     /**********************************************************/
     /*                                                        */
@@ -93,72 +90,35 @@ int main(int argc, char *argv[]) {
     /**********************************************************/
     
     /*****      Pre Computation     ******/
-    clock_t  t0 = clock();
-    kernel_Laplacian Atree(L,level, n, eps, use_chebyshev);
+    double t0 = omp_get_wtime();
+    kernel_Laplacian Atree(L,tree_level, interpolation_order, eps, use_chebyshev);
     Atree.buildFMMTree();
-    clock_t t1 = clock();
+    double t1 = omp_get_wtime();
     double tPre = t1 - t0;
-
+    
     /*****      FMM Computation     *******/
-    t0 = clock();
-    H2_3D_Compute<kernel_Laplacian> compute(&Atree, field, source, Ns, Nf, q,m, stress);
-    t1 = clock();
+    t0 = omp_get_wtime();    
+    H2_3D_Compute<kernel_Laplacian> compute(Atree, target, source, weight, nCols, output);
+    t1 = omp_get_wtime();    
     double tFMM = t1 - t0;
-    
-    /*****   You can repeat this part with different source, field points and charges *****/
-    
-    /*vector3* source1 = new vector3[Ns];    // Position array for the source points
-    vector3* field1 = new vector3[Nf];     // Position array for the field points
-    double *q1 = new double[Ns*dof.s*m];  // Source array
-     
-    SetSources(field1,Nf,source1,Ns,q1,m,&dof,L);
-     
-    double *stress1      =  new double[Nf*dof.f*m];// Field array (BBFMM calculation)
-    H2_3D_Compute<kernel_Stokes> compute1(&Atree, field1, source1, Ns, Nf, q1,m, stress1);*/
-    
-    /****   Test interplation error   *****/
-    
-//    kernel_Gaussian testTree(&dof,1.0/4 ,2, n, eps, use_chebyshev);
-//    double errtest = testInterplationErr(&testTree, 100, 100);
-    
 
-    
-    /*****      output result to binary file    ******/
-    // string outputfilename = "../output/stress.bin";
-    // write_Into_Binary_File(outputfilename, stress, m*Nf*dof.f);
-    
-    /**********************************************************/
-    /*                                                        */
-    /*              Exact matrix vector product               */
-    /*                                                        */
-    /**********************************************************/
-    // string inputfilename = "../output/stress_dir05gaussian.bin";
-    // read_Stress(inputfilename, stress_dir, Nf*dof.f*m);
+   /******      Check accuracy      *******/
 
-    t0 = clock();
-    DirectCalc3D(&Atree, field, Nf, source, q, m, Ns, 0 , L, stress_dir);
-    t1 = clock();
+    int num_rows = Nf;
+    std::vector<double> output_dir(num_rows*nCols);// Field array (direct O(N^2) calculation)
+
+    t0 = omp_get_wtime();   
+    DirectCalc3D(&Atree, target, source, weight, nCols, output_dir, num_rows);
+    t1 = omp_get_wtime();
     double tExact = t1 - t0;
 
-    string outputfilename = "../output/stress.bin";
-    write_Into_Binary_File(outputfilename, stress, m*Nf*dof.f);
-    
-    cout << "Pre-computation time: " << double(tPre) / double(CLOCKS_PER_SEC) << endl;
-    cout << "FMM computing time:   " << double(tFMM) / double(CLOCKS_PER_SEC)  << endl;
-    cout << "FMM total time:   "  << double(tPre+tFMM) / double(CLOCKS_PER_SEC)  << endl;
-    cout << "Exact computing time: " << double(tExact) / double(CLOCKS_PER_SEC)  << endl;
-    
     // Compute the 2-norm error
-    err = ComputeError(stress,stress_dir,Nf,&dof,m);
-    cout << "Relative Error: "  << err << endl;
-    
-    /*******            Clean Up        *******/
-    
-    delete []stress;
-    delete []stress_dir;
-    delete []source;
-    delete []field;
-    delete []q;
-    //delete []stress1;
+    double err = ComputeError(output,output_dir,Nf,nCols,num_rows);
+    cout << "Relative Error for first " <<  num_rows  << " : " << err << endl;
+  
+    cout << "Pre-computation time: " << tPre << endl;
+    cout << "FMM computing time:   " << tFMM  << endl;
+    cout << "FMM total time:   " << tFMM+tPre  << endl;
+   
     return 0;
 }

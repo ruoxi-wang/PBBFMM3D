@@ -44,7 +44,6 @@ int main(int argc, char *argv[]) {
     std::vector<vector3> source(Ns); // Position array for the source points
     std::vector<vector3> target(Nf);  // Position array for the target points
     std::vector<double> weight(Ns*nCols); // Source array
-    cout << "dfsaf" << endl;
 
     string filenameField  = "./../input/field_test.bin";
     string filenameSource = "./../input/source_test.bin";
@@ -85,7 +84,7 @@ int main(int argc, char *argv[]) {
     /*                                                        */
     /**********************************************************/
 
-    int num_rows = 100; // calculate first 100 rows.
+    int num_rows = Nf; // calculate first 100 rows.
     std::vector<double> output_dir(num_rows*nCols);
 
     t0 = omp_get_wtime(); 
