@@ -598,8 +598,13 @@ void H2_3D_Compute<T>::NearFieldInteractions(vector3 *target, vector3 *source,
             for (int l = 0; l < this->nCols; l++)
                 A->nodePhi[l*Nf+i] += sum;
         }
+    }
     
-
+    #pragma omp parallel for private(leafAIndex)
+    for (leafAIndex = 0; leafAIndex < (int)pow(8,(this->tree_level)); leafAIndex++) {
+        nodeT* A = indexToLeafPointer[leafAIndex];
+        if (A->Nf <= 0 || A->Ns <= 0) {continue;}
+        int Nf = A->Nf, m;
 
         double alpha = 1, beta = 1;
 
@@ -650,7 +655,7 @@ void H2_3D_Compute<T>::NearFieldInteractions(vector3 *target, vector3 *source,
 
 
   
-        #pragma omp critical (neartarget)  
+        #pragma omp critical (nearfield)  
         {
             for (int l = 0; l < this->nCols; l++) {
                 for (int i = 0; i < Nf; i++)
