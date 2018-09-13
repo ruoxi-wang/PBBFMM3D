@@ -15,6 +15,7 @@ class BaseWrap : public H2_3D_Tree, public wrapper<H2_3D_Tree>
     }
 };
 
+
 BOOST_PYTHON_MODULE(FMMTree)
 
 {
