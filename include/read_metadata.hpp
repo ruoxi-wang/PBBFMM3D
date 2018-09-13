@@ -10,7 +10,7 @@
 using namespace std;
 
 
-void read_Metadata(const string& filenameMetadata,double& L, int& interpolation_order, doft& dof, int& Ns, int& Nf, int& nCols, int& level);
+void read_Metadata(const string& filenameMetadata,double& L, int& interpolation_order, int& Ns, int& Nf, int& nCols, int& tree_level);
 
 
 #endif //(__read_metadata_hpp__)

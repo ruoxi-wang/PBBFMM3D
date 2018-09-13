@@ -5,7 +5,7 @@
 
 
 
-void read_Metadata(const string& filenameMetadata,double& L, int& interpolation_order, doft& dof, int& Ns, int& Nf, int& nCols, int& level) {
+void read_Metadata(const string& filenameMetadata,double& L, int& interpolation_order, int& Ns, int& Nf, int& nCols, int& tree_level) {
     ifstream fin;
 	fin.open(filenameMetadata.c_str());
 	if (!fin.good()){
@@ -19,8 +19,8 @@ void read_Metadata(const string& filenameMetadata,double& L, int& interpolation_
     stringstream ss;
     ss << line;
     char comma;
-    ss >> L >> comma >> interpolation_order >> comma >> dof.s >> comma >> dof.f >> comma >>
-    Ns >> comma >> Nf >> comma >> nCols >> comma >> level;
+    ss >> L >> comma >> interpolation_order >> comma >> 
+    Ns >> comma >> Nf >> comma >> nCols >> comma >> tree_level;
     fin.close();
 }
 

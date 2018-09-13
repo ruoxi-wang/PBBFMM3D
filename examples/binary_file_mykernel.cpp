@@ -31,19 +31,18 @@ int main(int argc, char *argv[]) {
     
     double L;                   // Length of simulation cell (assumed to be a cube)
     int interpolation_order;    // Number of interpolation nodes per dimension
-    doft dof;
     int Ns;                     // Number of sources in simulation cell
     int Nf;                     // Number of targes in simulation cell
-    int nCols;
-    int tree_level;
-    double eps = 1e-5 ;
-    int use_chebyshev = 1;
+    int nCols;                  // Number of columns for weights
+    int tree_level;             // Tree level
+    double eps = 1e-5 ;         // Target accuracy (SVD)
+    int use_chebyshev = 1;      // 1: chebyshev interpolation; 0: uniform interpolation
     
     string filenameMetadata = "./../input/metadata_test.txt";
     read_Metadata(filenameMetadata, L, interpolation_order, Ns, Nf, nCols, tree_level);
     std::vector<vector3> source(Ns); // Position array for the source points
     std::vector<vector3> target(Nf);  // Position array for the target points
-    std::vector<double> weight(Ns*nCols); // Source array
+    std::vector<double> weight(Ns*nCols); // Weight 
 
     string filenameField  = "./../input/field_test.bin";
     string filenameSource = "./../input/source_test.bin";

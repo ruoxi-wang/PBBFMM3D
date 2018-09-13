@@ -6,7 +6,8 @@
 #include"environment.hpp"
 using namespace std;
 
-void read_Sources(const string& filenameField, vector3 *target, const int& Nf, const string& filenameSource, vector3 *source, const int& Ns, const string& filenameCharge, double *weight, const int& nCols, const doft& dof) {
+void read_Sources(const string& filenameField, std::vector<vector3>& target, const int& Nf, const string& filenameSource, 
+    std::vector<vector3>& source, const int& Ns, const string& filenameCharge, std::vector<double>& weight, const int& nCols) {
     ifstream fin;
 
     /* Read source */
@@ -56,6 +57,6 @@ void read_Sources(const string& filenameField, vector3 *target, const int& Nf, c
 		cerr << "Failed to open file " << filenameCharge << endl;
 		throw runtime_error("Failed to open file!");
 	}
-    fin.read((char*) weight, nCols*Ns*dof.s*sizeof(double));
+    fin.read((char*) &weight[0], nCols*Ns*sizeof(double));
     fin.close();
 }

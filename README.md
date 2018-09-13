@@ -1,21 +1,25 @@
-#BBFMM3D  
+#PBBFMM3D  
 
 
 
 ###1. INTRODUCTION
 
-BBFMM3D is an open source package of the <a href="http://www.sciencedirect.com/science/article/pii/S0021999109004665">Black-box Fast Multipole Method</a> in 3 dimensions.   
+PBBFMM3D is a parallel open source package of the <a href="http://www.sciencedirect.com/science/article/pii/S0021999109004665">Black-box Fast Multipole Method</a> in 3 dimensions.   
 The Black-box Fast Multipole Method is an O(N) fast multipole method, which is a technique to calculate sums of the form  
 
 ![](http://latex.codecogs.com/gif.latex?f%28x_i%29%20%3D%20%5Cdisplaystyle%20%5Csum_%7Bj%3D1%7D%5EN%20K%28x_i%2Cy_j%29%20%5Csigma_j%2C%20%5C%2C%5C%2C%5C%2C%20%5Cforall%20i%20%5Cin%5C%7B1%2C2%2C%5Cldots%2CN%5C%7D)
 
-where ![](http://latex.codecogs.com/gif.latex?K%28x_i%2Cx_j%29) is kernel function, ![](http://latex.codecogs.com/gif.latex?x_i) are observation points, ![](http://latex.codecogs.com/gif.latex?y_j) are locations of sources, and ![](http://latex.codecogs.com/gif.latex?%5Csigma_i) are charges at corresponding locations.
-BBFMM3D provides an O(N) solution to matrix-vector products of the type Ax. In that case the relation between A and K is:
+where ![](http://latex.codecogs.com/gif.latex?K%28x_i%2Cx_j%29) is kernel function, ![](http://latex.codecogs.com/gif.latex?x_i) are target points, ![](http://latex.codecogs.com/gif.latex?y_j) are srouce points, and ![](http://latex.codecogs.com/gif.latex?%5Csigma_i) are weights at corresponding locations.
+PBBFMM3D provides an O(N) solution to matrix-vector products of the type Ax. In that case the relation between A and K is:
 ![](http://latex.codecogs.com/gif.latex?A_%7Bij%7D%20%3D%20K%28x_i%2Cy_j%29)
 
-This implementation of the FMM differs from other methods by the fact that it is applicable to all smooth kernels K. [Give examples of RBF kernels, 1/r, log r, Stokes, etc.].
+PBBFMM3D
 
-The approximation scheme used in the FMM relies on Chebyshev interplation to construct low-rank approximations for well-separated clusters. In addition the use of Singular Value Decomposition ensures that the computational cost is minimal. In particular the rank is optimally chosen for a given error. 
+*	applies to all non-oscillatory smooth kernels (e.g., RBF kernels, 1/r, log r, etc.) and only requires the kernel's numerical evaluation at data points.	
+*	is parallelized with OpenMP for shared memory machines.
+*	is efficient for both low and high accuracies (a choice of Chebyshev and uniform interpolations).
+*  pre-computes and compresses far-field translation operators.
+*  applies to multiple sets of weights in one pass.
 
 Please cite the following paper if you use this code:
 
@@ -24,15 +28,16 @@ Fong, William, and Eric Darve. "The black-box fast multipole methodshod." Journa
 ###2. DIRECTORIES AND FILES
 
 
-	./examples/		:	Example input C++ codes; Needed to read input from user or from input file.  
+	./examples/		:	Example input C++ codes
 	./src/			:	Source code in C++  
 	./include/		:	Relevant header files  
-	./exec/			:	Executables for BBFMM3D  
-	./input/		:	The input file.  
+	./exec/			:	Executables for PBBFMM3D  
+	./input/		:	The input file  
+	./output/		:   Output M2L operators
 	./README.md		:	This file  
 	./License.md	:	License file  
 	./Makefile		:	Makefile
-	./python                :       Python interface for BBFMM3D and REIG
+	./python        :   Python interface for PBBFMM3D and REIG
 	
 ###3. TUTORIAL
 ####3.1 To Get Started  
@@ -51,72 +56,69 @@ The basic usage of BBFMM3D with standard kernel is as follows:
 	#include"bbfmm3d.hpp"  
 	...
 	{
-	double L;       // Length of simulation cell (assumed to be a cube)
-    int n;          // Number of Chebyshev nodes per dimension
-    doft dof;
-    int Ns;         // Number of sources in simulation cell
-    int Nf;         // Number of field points in simulation cell
-    int m;
-    int level;		// The number of levels in the hierarchy tree
-    int use_chebyshev // label of whether the computation will use chebyshev interpolation formula or uniform interpolation formula 
-    double eps;
-    vector3 *source = new vector3[Ns];    // Position array for the source points
-    vector3 *field = new vector3[Nf];     // Position array for the field points
-    double *q =  new double[Ns*dof.s*m];  // Source array
-    double *stress      =  new double[Nf*dof.f*m];// Field array (BBFMM calculation)
-    …
-	kernel_LaplacianForce Atree(L,level, n, eps, use_chebyshev);
+	    
+    double L;                   // Length of simulation cell (assumed to be a cube)
+    int interpolation_order;    // Number of interpolation nodes per dimension
+    int Ns;                     // Number of sources in simulation cell
+    int Nf;                     // Number of targes in simulation cell
+    int nCols;                  // Number of columns for weights
+    int tree_level;             // Tree level
+    double eps = 1e-5 ;         // Target accuracy (SVD)
+    int use_chebyshev = 1;      // 1: chebyshev interpolation; 0: uniform interpolation    
+    
+    std::vector<vector3> source(Ns); // Position array for the source points
+    std::vector<vector3> target(Nf);  // Position array for the target points
+    std::vector<double> weight(Ns*nCols); // Weight 
+    std::vector<double> output(Nf*nCols);
+
+       …
+	kernel_Laplacian Atree(L, tree_level, interpolation_order, eps, use_chebyshev);
     Atree.buildFMMTree();  // Build the fmm tree;
-	
+
 	/* The following can be repeated with different field, source, and q */
     
-    H2_3D_Compute<kernel_LaplacianForce> compute(&Atree, field, source, Ns, Nf, q,m, stress);
+    H2_3D_Compute<kernel_Laplacian> compute(Atree, target, source, weight, nCols, output);
     ...
     }
     
 This example first build a FMM tree with these two lines:  
 
-	kernel_LaplacianForce Atree(L,level, n,  eps, use_chebyshev);
-    Atree.buildFMMTree();  
-where kernel_LaplacianForce is a class of fmm tree using LaplacianForce kernel, the constructor takes 5 arguments:  
+	kernel_Laplacian Atree(L, tree_level, interpolation_order, eps, use_chebyshev);
+    Atree.buildFMMTree(); 
+ 
+where kernel_Laplacian is a class of fmm tree using Laplacian kernel, the constructor takes 5 arguments:  
 
 * L(double):   
 	Length of simulation cell (assumed to be a cube).
-* level(int):  
+* tree_level(int):  
 	The number of levels in the hierarchy tree
-* n(int):  
-	Number of Chebyshev nodes per dimension. 
-	 
+* interpolation_order(int):  
+	Number of interpolation nodes per dimension. 
 * eps(double):  
 	Target accuracy; this is used to determine which
- singular values are kept after the SVD. cutoff.s and cutoff.f are computed
- using this epsilon.  
+ singular values are kept after the SVD. 
 * use_chebyshev(int):  
-	Label to indicate whether using chebyshev interpolation formula or uniform interpolation formula.  
-	use_chebyshev = 1: chebyshev interplation formula;  
-	use_chebyshev = 0: uniform interpolation formula(where FFT is used, now it just supports homogenous kernel, non-homogeneous will be added)
+	Label to indicate whether using Chebyshev interpolation formula or uniform interpolation formula.  
+	use_chebyshev = 1: Chebyshev interplation formula;  
+	use_chebyshev = 0: uniform interpolation formula (where FFT is used)
  
-Once the tree is created, you can repeat matrix-vector product with different field, source and q(charge).(see **3.2.4**) The code shows an example using LapacianForce kernel:  
+Once the tree is created, you can repeat matrix-vector product with different target, source and weight.(see **3.2.4**) The code shows an example using Lapacian kernel:  
 
-	H2_3D_Compute<kernel_LaplacianForce> compute(&Atree, field, source, Ns, Nf, q,m, stress);
+	H2_3D_Compute<kernel_Laplacian> compute(Atree, target, source, weight, nCols, output);
 The template class `H2_3D_Compute` is for computing matrix-vector product after the FMM tree is built. The constructor takes 8 arguments:  
 
-* &Atree(T*):  
-	A pointer to the FMM tree we just built. Here T is typename, FMM tree built with different kernels have different typenames.
-* field(vector3*):  
-	A pointer to position array of field points. vector3 is a struct storing x, y and z coordinates of a 3D point.  
-* source(vector3*):  
-	A pointer to position array of source points.  
-* Ns(int):   
-	Number of sources in simulation cell.
-* Nf(int):  
-	Number of fields in simulation cell  
-* q(double*):  
-	A pointer to the charges.
-* m(int):   
-	Number of sets of charges.  
-* stress(double*):   
-	A pointer to the result, and the result is stored column-wise in `stress`.
+* Atree (T):  
+	The FMM tree we just built. Here T is typename, FMM tree built with different kernels have different typenames.
+* target (std::vector<vector3>):  
+	Position array of target points. vector3 is a struct storing x, y and z coordinates of a 3D point.  
+* source (std::vector<vector3>):  
+	Position array of source points.   
+* weight (vector<double>):  
+	Array of weights.
+* nCols (int):   
+	Number of sets of weights.  
+* output (vector<double>):   
+	The output, which is stored column-wise.
 
 #####3.2.2 Options of provided kernels
 
@@ -163,75 +165,58 @@ Options of kernels:
 	usage: kernel_OneOverR4  
 	kernel function:  
 	![](http://latex.codecogs.com/gif.latex?K%28x%2Cy%29%20%3D%201%20/%20r%5E4)	
-* LAPLACIANFORCE kernel:  
-	usage: kernel_LaplacianForce  
-* STOKES kernel (tensor kernel)  
-	usage: kernel_Stokes  
-	kernel function:  
-	<img src="http://www.sciweavers.org/upload/Tex2Img_1441257351/render.png" border="0"/>
-	i.e. <img src="http://www.sciweavers.org/upload/Tex2Img_1441257386/render.png" border="0"/> 
-	where delta is an indicator function. vector r is the difference of x and y, see http://en.wikipedia.org/wiki/Stokes_flow#By_Green.27s_function:_the_Stokeslet for details.
 	
 	
     		
 If you want to define your own kernel, please see **3.2.3**.
 
-#####3.2.3 BBFMM3D with user defined kernel
+#####3.2.3 PBBFMM3D with customized kernel
 
-The basic usage is almost the same as **3.2.1** except that you have to define your own routine of computing kernel. One example code is as follows:  
-
-	#include "bbfmm3d.hpp"
+The basic usage is almost the same as **3.2.1** except that you have to define your own routine of computing kernel. You need to fill in two pieces of information: the kernel definition and the kernel's homogeneous and symmetric properties. One example is as follows:  
 	
+	#include "bbfmm3d.hpp"
+
+
 	class myKernel: public H2_3D_Tree {
 	public:
-    myKernel(double L, int level, int n, double epsilon, int use_chebyshev):H2_3D_Tree(L,level,n, epsilon, use_chebyshev){};
-    virtual void setHomogen(string& kernelType,doft* dof) {
-        homogen = -1;
-        symmetry = 1;
-        kernelType = "myKernel";
-        dof->f = 1;
-        dof->s = 1;
-    }
-    virtual void EvaluateKernel(vector3 fieldpos, vector3 sourcepos,
-                                double *K, doft *dof) {
-        vector3 diff;
-        double rinv;
-        
-        diff.x = sourcepos.x - fieldpos.x;
-        diff.y = sourcepos.y - fieldpos.y;
-        diff.z = sourcepos.z - fieldpos.z;
-        *K = 1. / sqrt(diff.x*diff.x + diff.y*diff.y + diff.z*diff.z);
-    }
-	};
-
-	
+	    myKernel(double L, int tree_level, int interpolation_order,  double epsilon, int use_chebyshev):H2_3D_Tree(L,tree_level,interpolation_order, epsilon, use_chebyshev){};
+	    virtual void SetKernelProperty() {
+	        homogen = -1;
+	        symmetry = 1;
+	        kernelType = "myKernel";
+	    }
+	    virtual double EvaluateKernel(vector3& targetpos, vector3& sourcepos) {
+	        vector3 diff;        
+	        diff.x = sourcepos.x - targetpos.x;
+	        diff.y = sourcepos.y - targetpos.y;
+	        diff.z = sourcepos.z - targetpos.z;
+	        return 1. / sqrt(diff.x*diff.x + diff.y*diff.y + diff.z*diff.z);
+	    }
+	};	
 
 	...
 	{
 	…
-	myKernel Atree(L,level, n, eps, use_chebyshev);
+	myKernel Atree(L, tree_level, interpolation_order, epsilon, use_chebyshev);
     Atree.buildFMMTree();  // Build the fmm tree;
 	
 	/* The following can be repeated with different field, source, and q */
     
-    H2_3D_Compute<myKernel> compute(&Atree, field, source, Ns, Nf, q, m, stress);
+    H2_3D_Compute<myKernel> compute(Atree, target, source, weight, nCols, output);
     ...
     }
-    
-    
-* dof(doft*):   
-	A pointer to degree of freedom, which is the sizes of the small tensor matrix(tensor kernel). The FMM can also handle case of tensor kernel(not only scalar kernel). This struct stores information about the size of tensor kernel. 
+ 
 	
-You can define your own kernel inside `EvaluateKernel(vector3 fieldpos, vector3 sourcepos,
-                                double *K, doft *dof)`, it takes field point, source point and degree of freedom(see **3.2.1**) as input, and pass the kernel value to K. 
+You can define your own kernel inside `EvaluateKernel(vector3& targetpos, vector3& sourcepos)`, it takes target point and source point as input, and return the kernel value. 
                                                                 
-You also need to define information about kernel inside `setHomogen(string& kernelType,doft* dof)` 
+You also need to define information about kernel inside `SetKernelProperty()` 
 
 * homogen:
 	The homogeneous property of kernel.(The cost and memory requirements of the pre-computation step can be reduced for the case of homogeneous kernels.)
 	* homogen = 0: if the kernel funtion is not homogeneous.
 	* homogen = m: if the kernel funtion is homogeneous of degree m, i.e. ![](http://latex.codecogs.com/gif.latex?K%28%5Calpha%20x%2C%20%5Calpha%20y%29%20%3D%20%5Calpha%5Em%20K%28x%2Cy%29)
-	* symmetry:   
+	
+* symmetry:   
 	The symmetry property of the kernel.
 	* symmetry = 0:  no symmetric property; 
 	* symmetry = 1: symmetric kernel; 		[K(x,y) = K(y,x)]
@@ -244,7 +229,7 @@ You also need to define information about kernel inside `setHomogen(string& kern
                            
 #####3.2.4 Usage of multiple sources with same kernel
 
-If you want to compute with different sources (source points, field points, charges) but with same kernel and number of Chebyshev nodes, you can do it in one file:
+If you want to compute with different sources (source points, target points, weight) but with same kernel and interpolation order, you can do it in one file:
 e.g.  
 
 	class myKernel: public H2_3D_Tree {
@@ -255,33 +240,36 @@ e.g.
 	{
 	…
 	/* Build FMM tree */
-	myKernel Atree(L,level, n, eps, use_chebyshev);
+	myKernel Atree(L,tree_level,interpolation_order, epsilon, use_chebyshev);
     Atree.buildFMMTree(); 
 	
 	/* The following can be repeated with different field, source, and q */
     
-    H2_3D_Compute<myKernel> compute1(&Atree, field1, source1, Ns1, Nf1, q1,m1, stress1);
-	H2_3D_Compute<myKernel> compute2(&Atree, field2, source2, Ns2, Nf2, q2,m2, stress2);
+    H2_3D_Compute<myKernel> compute1(Atree, target1, source1, weight1, nCol1, output1);
+	H2_3D_Compute<myKernel> compute2(Atree, target2, source2, weight2, nCol2, output2);
     …
     }
     
 
-The basic usage is already domonstrated in **3.2.1** and **3.2.3**. Once you have built the FMM tree, you can use different sources to compute the matrix-vector multiplication without rebuilding the tree. You can choose kernel type from standard kernels given by us ( see **3.2.2** ), or you can define your own kernel ( see **3.2.3** )
+The basic usage is already domonstrated in **3.2.1** and **3.2.3**. Once you have built the FMM tree, you can use different sources to compute the matrix-vector multiplication without rebuilding the tree. You can use either standard kernels provided ( see **3.2.2** ), or customized kernels ( see **3.2.3** )
 
 ####3.3 Pre-computation
 
-The power of this package is in the pre-computing part, which is much more computationally expensive than computing part. This package takes advantage of the fact that for a given kernel and number of chebyshev nodes, the precomputing part is the same, so for a fixed kernel and number of chebyshev nodes, it generates 3 files storing information of FMM tree in the folder /output. Everytime when we use the same kernel type and number of chebyshev nodes, we can directly read from the files, which would save a lot of time.
+The power of this package is in the pre-computing part, which pre-computes and compresses far-field translation operators for later calculations. These operators and tree-related information are stored in 3 files in the folder /output. Each time a same kenrel and interpolation order is used, it directly reads from the files. 
 
-Note: it is true that sometimes with the pre-computation step, the code will be slower than direct calculation. But if the file already exists, then when doing more computations it will be faster than direct calculation. If you are using your own kernel, make sure to either change the kernelType or delete the existed file if you changed your kernel. 
+Note: If you are using your own kernel, make sure to either change the kernelType (used in filenames) or delete exsiting files if you changed your kernel. 
+
+####3.4 Input parameter choice guidance
+For interpolation order `p`, a higher p improves the accuracy but also increases the runtime and memory. For the interpolation scheme (indicated by `use_chebyshev`), when a low accuracy is requested, Chebyshev scheme is more efficient; when a high accuracy is requested, uniform scheme is more efficient. For the tree levels `tree_level`, it is often chosen such that the leaf has approximately 60 points. For the prescribed accuracy of SVD `eps`, it is chosen to be similar to the desired approximation accuracy.
 
 
-####3.4 Test Interplation Error  
-To give the user an idea of how large the interplation error is, we have provided a routine of computing the interplation error. If you want to test the interplation error between a cluster A (of size length) and a cluster B, where B is in the interplation list of A, you can do the following:  
+####3.5 Test Interplation Error  
+To give users an idea of how large the interplation error is, we have provided a routine of computing the interplation error. If you want to test the interplation error between a cluster A (of size length) and a cluster B, where B is in the interplation list of A, you can do the following:  
 
-	kernel_LaplacianForce testTree(&dof,1/pow(2,2),2, n, eps, use_chebyshev);
+	kernel_Laplacian testTree(1/pow(2,2), 2, interpolation_order, eps, use_chebyshev);
     double errtest = testInterplationErr(&testTree, 100, 100);
     
-The first line constructs a FMM tree, you can see **3.2.1** for more details of the constructor. Here we more explanations of the second and third arguments:  
+The first line constructs a FMM tree, you can see **3.2.1** for more details of the constructor. Here we provide more explanations to the second and third arguments:  
 
 * second argument:  
   if you want to test the error with cluster of size `length`, then the second argument should be set to `4 x length`.
@@ -295,7 +283,7 @@ The second line is the routine to compute interplation error.
 * 100 (int):   
 	Number of source points in the cluster.
 * 100 (int):  
-	Number of field points in the cluster.
+	Number of target points in the cluster.
 	
 
 
@@ -306,22 +294,23 @@ We have provided several routines for reading data from binary file, and writing
 
 ####4.1 Reading meta data from text file
 	
-	void read_Metadata(const string& filenameMetadata,double& L, int& n, doft& dof, int& Ns, int& Nf, int& m, int& level);
-The first argument, filenameMetadata is the filename for your meta data. L stores the length of simulation cell (assumed to be a cube); n stores the number of chebyshev nodes per dimension; dof stores (???); Ns stores the number of source points; Nf stores the number of field points; m stores the number of sets of charges; level stores the number of levels in the hierarchy tree;
+	void read_Metadata(const string& filenameMetadata, double& L, int& interpolation_order, int& Ns, int& Nf, int& nCols, int& tree_level);
+
+The first argument, `filenameMetadata` is the filename for your meta data. `L` stores the length of simulation cell (assumed to be a cube); `interpolation_order ` stores the interpolation order; `Ns` stores the number of source points; `Nf` stores the number of target points; `nCols ` stores the number of sets of weights; `tree_level ` stores the number of levels in the hierarchy tree;
 
 **File format:**  
  
-`L, n, dof.s, dof.f, Ns, Nf, m, level`
+`L, interpolation_order, Ns, Nf, nCols, tree_level `
 
 For example:
 
- 	1,4,9,6,800,500,1,2
+ 	1,4,800,800,1,2
  	 	
 ####4.2 Reading from binary file  
 
-	void read_Sources(const string& filenameField, vector3 *field, const int& Nf, const string& filenameSource, vector3 *source, const int& Ns, const string& filenameCharge, double *q, const int& m, const doft& dof);
+	void read_Sources(const string& filenameField, std::vector<vector3>& target, const int& Nf, const string& filenameSource, std::vector<vector3>& source, const int& Ns, const string& filenameCharge, std::vector<double>& weight, const int& nCols);
 
-The first argument filenameField, the forth argument filenameSource and the seventh argument filenameCharge are binary file names for field positions, source positions and charges respectively. Nf, Ns, m and dof are passed to this funtion. Nf is the number of field points, Ns is the number of source points, m is the number of sets of charges, and dof is the degree of freedom. The data of field is stored in `field`, the data of source is stored in `source`, and the data of charges is stored in `q` column-wise.  
+The arguments `filenameField`, `filenameSource` and `filenameCharge` are binary file names for target positions, source positions and weights respectively. `Nf`, `Ns` and `nCols` are the number of target points, the number of source points, and the number of sets of weights. The funtion outputs target points, source points and weights into `target`, `source`, and `weight` (column-wise), respectively.  
 
 **File format:** 
  
@@ -343,21 +332,21 @@ The first argument filenameField, the forth argument filenameSource and the seve
 
 	field positions are stored column-wise:
 		
-		fieldpos0.x
-		fieldpos1.x
+		targetpos0.x
+		targetpos1.x
 		…
-		fieldpos0.y
-		fieldpos1.y
+		targetpos0.y
+		targetpos1.y
 		…
-		fieldpos0.z
-		fieldpos1.z
+		targetpos0.z
+		targetpos1.z
 		...
 		
-3. Binary file for charges:  
-	charges are stored column-wise:  
+3. Binary file for weights:  
+	weights are stored column-wise:  
 	
-		first set of charges
-		second set of charges
+		first set of weights
+		second set of weights
 		...
 	
 		
@@ -370,10 +359,10 @@ This first argument is the filename for your output data. The second argument is
 
 ###5. EXAMPLES
 
-We have provided several examples for BBFMM3D. Go to examples/, read through the files both must be self explanatory for the most part.
+We have provided several examples for PBBFMM3D. The files in `examples/` should be self-explanatory.
 You can use our examples with your own input.
 ####5.1 Example file for generating binary/text files.
-Both gen_binary_file.m and test.cpp shows how our test binary files are generated.
+Both gen\_binary\_file.m and test.cpp shows how our test binary files are generated.
 ####5.2 Making changes to the examples for your own application
 
 1. If you want to generate input through your own routine, and use the standard kernels:
@@ -418,7 +407,7 @@ Both gen_binary_file.m and test.cpp shows how our test binary files are generate
 	Go to `/examples/`, open `"binary_file_mykernel.cpp"`.
 	* To change the input filename:  
 	
-	  	The same step as described in 5.  
+	  	The same step as described in 3.  
 	* To define your own kernel:  
 	
 	   Modify `class myKernel`.
@@ -442,7 +431,7 @@ If you want to use `"binary_file_standard_kernel.cpp"`
 
 		make tar
 
-4. Read through the makefile for other options.
+4. Read through the Makefile for other options.
 
 To run other .cpp files:  
 
