@@ -8,7 +8,7 @@
 using namespace boost::python;
 
 
-void convert_to_numpy(const vector<double> & input, object obj)
+void convert_to_numpy(const vector<double> & input, object&  obj)
 {
     PyObject* pobj = obj.ptr();
     Py_buffer pybuf;
@@ -25,6 +25,7 @@ void convert_to_numpy(const vector<double> & input, object obj)
 
 void convert_to_vecOfdouble(const object& obj, vector<double>& output)
 {
+    // output is in colwise major
     PyObject* pobj = obj.ptr();
     Py_buffer pybuf;
     PyObject_GetBuffer(pobj, &pybuf, PyBUF_SIMPLE);
@@ -32,11 +33,8 @@ void convert_to_vecOfdouble(const object& obj, vector<double>& output)
     double *p = (double*)buf;
     Py_XDECREF(pobj);
     output.resize(len(obj));
-
-    for (int i  = 0; i < len(obj); i++)
-    {
-        output[i] = p[i];
-    }
+    for (int i = 0; i < len(obj); i++)
+      output[i] = p[i];
 }
 
 void convert_to_vecOfvec3(const object& obj, vector<vector3>& output)

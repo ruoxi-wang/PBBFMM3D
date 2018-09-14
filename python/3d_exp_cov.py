@@ -5,7 +5,6 @@ from FMMTree import *
 from FMMCompute import *
 import numpy as np
 import timeit
-import ctypes as C
 
 def load_data(file_xcoord, file_ycoord, file_zcoord):
     xcoord = np.loadtxt(file_xcoord)
@@ -51,7 +50,7 @@ def main():
     print("Loading data...")
     source, target = load_data("../input/xcoord.txt", "../input/ycoord.txt", "../input/zcoord.txt")
     Ns, Nf, nCols = len(source), len(target), 1
-    weight = np.ones([Ns, nCols])
+    weight = np.ones(Ns*nCols)
 
     print("Ns = %d, Nf = %d"% (Ns, Nf))
 
