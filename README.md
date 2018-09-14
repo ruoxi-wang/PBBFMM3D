@@ -1,8 +1,6 @@
-#PBBFMM3D  
+# PBBFMM3D  
 
-
-
-###1. INTRODUCTION
+### 1. INTRODUCTION
 
 PBBFMM3D is a parallel open source package of the <a href="http://www.sciencedirect.com/science/article/pii/S0021999109004665">Black-box Fast Multipole Method</a> in 3 dimensions.   
 The Black-box Fast Multipole Method is an O(N) fast multipole method, which is a technique to calculate sums of the form  
@@ -25,7 +23,7 @@ Please cite the following paper if you use this code:
 
 Fong, William, and Eric Darve. "The black-box fast multipole methodshod." Journal of Computational Physics 228, no. 23 (2009): 8712-8725. You can see details <a href="http://www.sciencedirect.com/science/article/pii/S0021999109004665">here</a>.
 
-###2. DIRECTORIES AND FILES
+### 2. DIRECTORIES AND FILES
 
 
 	./examples/		:	Example input C++ codes
@@ -39,17 +37,17 @@ Fong, William, and Eric Darve. "The black-box fast multipole methodshod." Journa
 	./Makefile		:	Makefile
 	./python        :   Python interface for PBBFMM3D and REIG
 	
-###3. TUTORIAL
-####3.1 To Get Started  
+### 3. TUTORIAL
+#### 3.1 To Get Started  
 To check whether things are set up correctly, you can perform the following: Go to the directory where Makefile is in, then key in the following three commands in the terminal:
 
 		make binary_file_mykernel
 		cd exec/
 		./binary_file_mykernel
 
-####3.2 Basic usage
+#### 3.2 Basic usage
 
-#####3.2.1 BBFMM3D with standard kernel
+##### 3.2.1 BBFMM3D with standard kernel
 
 The basic usage of BBFMM3D with standard kernel is as follows: 
 
@@ -120,7 +118,7 @@ The template class `H2_3D_Compute` is for computing matrix-vector product after 
 * output (vector<double>):   
 	The output, which is stored column-wise.
 
-#####3.2.2 Options of provided kernels
+##### 3.2.2 Options of provided kernels
 
 Below are the details of the kernel functions K we have provided:  
 ( For all the kernel functions, we denote r to be Euclidean distance between x and y. )
@@ -170,7 +168,7 @@ Options of kernels:
     		
 If you want to define your own kernel, please see **3.2.3**.
 
-#####3.2.3 PBBFMM3D with customized kernel
+##### 3.2.3 PBBFMM3D with customized kernel
 
 The basic usage is almost the same as **3.2.1** except that you have to define your own routine of computing kernel. You need to fill in two pieces of information: the kernel definition and the kernel's homogeneous and symmetric properties. One example is as follows:  
 	
@@ -227,7 +225,7 @@ You also need to define information about kernel inside `SetKernelProperty()`
                       
                                 
                            
-#####3.2.4 Usage of multiple sources with same kernel
+##### 3.2.4 Usage of multiple sources with same kernel
 
 If you want to compute with different sources (source points, target points, weight) but with same kernel and interpolation order, you can do it in one file:
 e.g.  
@@ -253,17 +251,17 @@ e.g.
 
 The basic usage is already domonstrated in **3.2.1** and **3.2.3**. Once you have built the FMM tree, you can use different sources to compute the matrix-vector multiplication without rebuilding the tree. You can use either standard kernels provided ( see **3.2.2** ), or customized kernels ( see **3.2.3** )
 
-####3.3 Pre-computation
+#### 3.3 Pre-computation
 
 The power of this package is in the pre-computing part, which pre-computes and compresses far-field translation operators for later calculations. These operators and tree-related information are stored in 3 files in the folder /output. Each time a same kenrel and interpolation order is used, it directly reads from the files. 
 
 Note: If you are using your own kernel, make sure to either change the kernelType (used in filenames) or delete exsiting files if you changed your kernel. 
 
-####3.4 Input parameter choice guidance
+#### 3.4 Input parameter choice guidance
 For interpolation order `p`, a higher p improves the accuracy but also increases the runtime and memory. For the interpolation scheme (indicated by `use_chebyshev`), when a low accuracy is requested, Chebyshev scheme is more efficient; when a high accuracy is requested, uniform scheme is more efficient. For the tree levels `tree_level`, it is often chosen such that the leaf has approximately 60 points. For the prescribed accuracy of SVD `eps`, it is chosen to be similar to the desired approximation accuracy.
 
 
-####3.5 Test Interplation Error  
+#### 3.5 Test Interplation Error  
 To give users an idea of how large the interplation error is, we have provided a routine of computing the interplation error. If you want to test the interplation error between a cluster A (of size length) and a cluster B, where B is in the interplation list of A, you can do the following:  
 
 	kernel_Laplacian testTree(1/pow(2,2), 2, interpolation_order, eps, use_chebyshev);
@@ -289,10 +287,10 @@ The second line is the routine to compute interplation error.
 
 
 
-###4. ROUTINES FOR INPUTING AND OUTPUTING DATA 
+### 4. ROUTINES FOR INPUTING AND OUTPUTING DATA 
 We have provided several routines for reading data from binary file, and writing data into binary file.	
 
-####4.1 Reading meta data from text file
+#### 4.1 Reading meta data from text file
 	
 	void read_Metadata(const string& filenameMetadata, double& L, int& interpolation_order, int& Ns, int& Nf, int& nCols, int& tree_level);
 
@@ -306,7 +304,7 @@ For example:
 
  	1,4,800,800,1,2
  	 	
-####4.2 Reading from binary file  
+#### 4.2 Reading from binary file  
 
 	void read_Sources(const string& filenameField, std::vector<vector3>& target, const int& Nf, const string& filenameSource, std::vector<vector3>& source, const int& Ns, const string& filenameCharge, std::vector<double>& weight, const int& nCols);
 
@@ -357,13 +355,11 @@ The arguments `filenameField`, `filenameSource` and `filenameCharge` are binary 
 This first argument is the filename for your output data. The second argument is a pointer to the output data, and the last argument is the number of elements in the array of your output data.  
 
 
-###5. EXAMPLES
+### 5. EXAMPLES
 
 We have provided several examples for PBBFMM3D. The files in `examples/` should be self-explanatory.
 You can use our examples with your own input.
-####5.1 Example file for generating binary/text files.
-Both gen\_binary\_file.m and test.cpp shows how our test binary files are generated.
-####5.2 Making changes to the examples for your own application
+#### 5.1 Making changes to the examples for your own application
 
 1. If you want to generate input through your own routine, and use the standard kernels:
 
@@ -414,7 +410,7 @@ Both gen\_binary\_file.m and test.cpp shows how our test binary files are genera
 	 
 When using our examples, make sure that the input file format are the same as described in  **4.**  	
 
-####5.2 Run examples  
+#### 5.2 Run examples  
 
 Here we give an example:  
 If you want to use `"binary_file_standard_kernel.cpp"`  
