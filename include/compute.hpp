@@ -211,8 +211,8 @@ void H2_3D_Compute<T>::UpwardPass(nodeT **A, vector3 *source, double *weight, do
 	if ((*A)->leaves[0] != NULL) {  // Going up the tree M2M
         
         // Allocate memory for the source values and initialize
-		(*A)->sourceval = (double *)malloc(n3*this->m*sizeof(double));
-		for (int l=0;l<n3*this->m;l++) {
+		(*A)->sourceval = (double *)malloc(n3*this->nCols*sizeof(double));
+		for (int l=0;l<n3*this->nCols;l++) {
             (*A)->sourceval[l] = 0;
         }
 		
@@ -235,7 +235,7 @@ void H2_3D_Compute<T>::UpwardPass(nodeT **A, vector3 *source, double *weight, do
                     else
                         r[l] =  1;
                 
-		        double SS[n3*this->m];
+		        double SS[n3*this->nCols];
                 Moment2Moment(n, r, Schild, SS, dof, Cweights);
                 
                 if (!use_chebyshev) {
@@ -246,7 +246,7 @@ void H2_3D_Compute<T>::UpwardPass(nodeT **A, vector3 *source, double *weight, do
 
                 }
                 
-                for (int l=0; l<n3*this->m; l++)
+                for (int l=0; l<n3*this->nCols; l++)
                     (*A)->sourceval[l] += SS[l];
             }
         }
@@ -273,20 +273,10 @@ void H2_3D_Compute<T>::UpwardPass(nodeT **A, vector3 *source, double *weight, do
         FMMTree->ComputeSn(sourcet,Tkz,n,Ns,Ss, use_chebyshev);
         
         // Compute the source values
-        (*A)->sourceval = (double *)malloc(n3*this->m*sizeof(double));
+        (*A)->sourceval = (double *)malloc(n3*this->nCols*sizeof(double));
         double *S = (*A)->sourceval;
-<<<<<<< HEAD
-        int l = 0;
-        for (l1=0;l1<n;l1++) {
-            for (l2=0;l2<n;l2++) {
-                for (l3=0;l3<n;l3++) {
-                    sum = 0;
-                    for (j=0;j<Ns;j++) {
-                        k = sourcelist[j];
-                        sum += weight[k]*Ss[l1*Ns+j].x*Ss[l2*Ns+j].y*Ss[l3*Ns+j].z;
-=======
 
-        for (int col = 0; col < this->m; col++) {
+        for (int col = 0; col < this->nCols; col++) {
             int l = 0;
             for (l1=0;l1<n;l1++) {
                 for (l2=0;l2<n;l2++) {
@@ -294,11 +284,10 @@ void H2_3D_Compute<T>::UpwardPass(nodeT **A, vector3 *source, double *weight, do
                         sum = 0;
                         for (j=0;j<Ns;j++) {
                             k = sourcelist[j];
-                            sum += q[col*this->Ns+k]*Ss[l1*Ns+j].x*Ss[l2*Ns+j].y*Ss[l3*Ns+j].z;
+                            sum += weight[col*this->Ns+k]*Ss[l1*Ns+j].x*Ss[l2*Ns+j].y*Ss[l3*Ns+j].z;
                         }
                         S[n3*col+l] = sum;
                         l++;
->>>>>>> 612597c... fix bug on applying to multiple vectors
                     }
                 }
             }
@@ -327,12 +316,12 @@ void H2_3D_Compute<T>::UpwardPass(nodeT **A, vector3 *source, double *weight, do
         int l1, l2, l3, n3 = n*n*n;
         
         double *x = (*A)->sourceval;
-        double *padx    = fftw_alloc_real( padSize*this->m  );
-        (*A)->sourcefre = fftw_alloc_real( padSize*this->m  );
-        for (i = 0; i < padSize*this->m; i++)
+        double *padx    = fftw_alloc_real( padSize*this->nCols  );
+        (*A)->sourcefre = fftw_alloc_real( padSize*this->nCols  );
+        for (i = 0; i < padSize*this->nCols; i++)
             padx[i] = 0;
 
-        for (int col=0; col<this->m; col++)
+        for (int col=0; col<this->nCols; col++)
             for (i=0; i<n3; i++) {
                 l3 = i % l3Size;
                 l1 = i / l1Size;
@@ -342,7 +331,7 @@ void H2_3D_Compute<T>::UpwardPass(nodeT **A, vector3 *source, double *weight, do
             }
         
         fftw_plan p;
-        for (int col=0; col<this->m; col++) {
+        for (int col=0; col<this->nCols; col++) {
             #pragma omp critical (make_plan)
             p = fftw_plan_r2r_1d(padSize, &padx[col*padSize], &(*A)->sourcefre[col*padSize], FFTW_R2HC, FFTW_FLAG);
             fftw_execute(p);
@@ -355,9 +344,9 @@ void H2_3D_Compute<T>::UpwardPass(nodeT **A, vector3 *source, double *weight, do
     } else {
         int n3    = n*n*n;
         double *x = (*A)->sourceval;
-        double Sw[n3*this->m];
+        double Sw[n3*this->nCols];
         
-        for (int col = 0; col < this->m; col++)
+        for (int col = 0; col < this->nCols; col++)
             for (int l=0;l<n3;l++) {
                 Sw[col*n3+l] = x[col*n3+l] * Kweights[l];
             }
@@ -370,10 +359,10 @@ void H2_3D_Compute<T>::UpwardPass(nodeT **A, vector3 *source, double *weight, do
         lvl_shift = (curTreeLevel>=2) ? curTreeLevel-2: 0;
         lvl_shift *= !homogen;
         
-        (*A)->proxysval = (double*) malloc(cutoff->s * this->m * sizeof(double));
+        (*A)->proxysval = (double*) malloc(cutoff->s * this->nCols * sizeof(double));
 
         // TODO
-        dgemm_(&trans, &trans, &cutoff->s, &this->m, &n3, &a, VT + Vsize*lvl_shift, &cutoff->s, Sw, &n3,
+        dgemm_(&trans, &trans, &cutoff->s, &this->nCols, &n3, &a, VT + Vsize*lvl_shift, &cutoff->s, Sw, &n3,
            &beta, (*A)->proxysval, &cutoff->s);
       }
 }
@@ -424,32 +413,23 @@ void H2_3D_Compute<T>::FarFieldInteractions(double *E, int *Ktable, double *U,
         matSizeDof = cutoff_f;
       else {
         matSizeDof = (int)round(pow(2*n-1,3));
-        productfre = fftw_alloc_real( matSizeDof * this->m);
-        for (i=0;i<matSizeDof* this->m;i++)
+        productfre = fftw_alloc_real( matSizeDof * this->nCols);
+        for (i=0;i<matSizeDof* this->nCols;i++)
             productfre[i] = 0;
       } 
         
 
-      double *FFCoeff = (double*) malloc(matSizeDof *this->m*sizeof(double));
+      double *FFCoeff = (double*) malloc(matSizeDof *this->nCols*sizeof(double));
         
 
-<<<<<<< HEAD
-      cell->targetval = (double *)calloc(dofn3_f, sizeof(double)); // initialize to zero
+      cell->targetval = (double *)calloc(dofn3_f*this->nCols, sizeof(double)); // initialize to zero
       assert(cell->targetval != NULL);
-=======
-      cell->fieldval = (double *)calloc(dofn3_f*this->m, sizeof(double)); // initialize to zero
-      assert(cell->fieldval != NULL);
->>>>>>> 612597c... fix bug on applying to multiple vectors
          
       vector3 fcenter = cell->center;   // Obtain the center of the target cell
       int ninter   = cell->iinter;   // Obtain the number of interaction cells
-<<<<<<< HEAD
-      double *F    = cell->targetval; // Initialize pointer to the target values of A
-      double *Pf   = (double*) calloc(cutoff_f, sizeof(double)); // Initialize to zero
-=======
-      double *F    = cell->fieldval; // Initialize pointer to the field values of A
-      double *Pf   = (double*) calloc(cutoff_f*this->m, sizeof(double)); // Initialize to zero
->>>>>>> 612597c... fix bug on applying to multiple vectors
+
+      double *F    = cell->targetval; // Initialize pointer to the field values of A
+      double *Pf   = (double*) calloc(cutoff_f*this->nCols, sizeof(double)); // Initialize to zero
         
       // Compute the target values due to all members of the interaction list
       for (i=0;i<ninter;i++) {  
@@ -465,20 +445,20 @@ void H2_3D_Compute<T>::FarFieldInteractions(double *E, int *Ktable, double *U,
                 iL*(scenter.z-fcenter.z) };
 
         // initialize to zeros
-        for (j=0; j<matSizeDof*this->m; j++) {
+        for (j=0; j<matSizeDof*this->nCols; j++) {
           FFCoeff[j] = 0;
         }
 
         if (use_chebyshev) {
            
           Moment2Local(n, R, B->proxysval, FFCoeff, E + Ksize*lvl_shift, Ktable, dof, cutoff, use_chebyshev);
-          for (j=0; j<cutoff_f*this->m; j++)
+          for (j=0; j<cutoff_f*this->nCols; j++)
             Pf[j] += FFCoeff[j];
           }
             
         else{
           Moment2Local(n, R, B->sourcefre, FFCoeff, E + Ksize*lvl_shift, Ktable, dof, cutoff, use_chebyshev);
-          for (j=0; j<matSizeDof*this->m; j++)
+          for (j=0; j<matSizeDof*this->nCols; j++)
             productfre[j] += FFCoeff[j];
           }
       } // end for ninter
@@ -490,11 +470,11 @@ void H2_3D_Compute<T>::FarFieldInteractions(double *E, int *Ktable, double *U,
         int incr     =  1;
         char trans   = 'n';
         double alpha =  0;
-        double F_m2l[n*n*n*this->m];
-        dgemm_(&trans, &trans, &dofn3_f, &this->m, &cutoff_f, &scale, U + Usize*lvl_shift,
+        double F_m2l[n*n*n*this->nCols];
+        dgemm_(&trans, &trans, &dofn3_f, &this->nCols, &cutoff_f, &scale, U + Usize*lvl_shift,
            &dofn3_f, Pf, &cutoff_f, &alpha, F_m2l, &dofn3_f);
 
-        for (int col=0;col<this->m; col++)
+        for (int col=0;col<this->nCols; col++)
             for (int i = 0; i < n3; i++)
                 F[col*n3+i] +=  F_m2l[col*n3+i] * Kweights[i];
 
@@ -506,10 +486,10 @@ void H2_3D_Compute<T>::FarFieldInteractions(double *E, int *Ktable, double *U,
         int shift;
         int l1, l2, l3;
          
-        double *res = fftw_alloc_real( padSize*this->m);
+        double *res = fftw_alloc_real( padSize*this->nCols);
         fftw_plan p;
 
-        for (int col=0; col<this->m;col++) {
+        for (int col=0; col<this->nCols;col++) {
             #pragma omp critical (make_plan)
             p = fftw_plan_r2r_1d(padSize, &productfre[col*padSize], &res[col*padSize], FFTW_HC2R, FFTW_FLAG);
             fftw_execute(p);
@@ -520,7 +500,7 @@ void H2_3D_Compute<T>::FarFieldInteractions(double *E, int *Ktable, double *U,
 
          
         fftw_free(productfre), productfre=NULL;
-        for (int col=0; col<this->m;col++)
+        for (int col=0; col<this->nCols;col++)
         for (i=0; i<n3; i++) {
           l3 = i % l3Size;
           l1 = i / l1Size;
@@ -532,7 +512,7 @@ void H2_3D_Compute<T>::FarFieldInteractions(double *E, int *Ktable, double *U,
         fftw_free(res), res = NULL;
          
         // F += FFT result
-        for (j=0; j<cutoff_f*this->m; j++)
+        for (j=0; j<cutoff_f*this->nCols; j++)
           F[j] += scale *Pf[j]; 
       }
          
@@ -593,13 +573,8 @@ void H2_3D_Compute<T>::NearFieldInteractions(vector3 *target, vector3 *source,
         int Nf = A->Nf, i, m;
         int l, l1, l2, l3;
         double sum;        
-<<<<<<< HEAD
         double *F = A->targetval;
-=======
-        double *F = A->fieldval;
         int n3 = n*n*n;
-
->>>>>>> 612597c... fix bug on applying to multiple vectors
         
         double ihalfL = 2./A->length, tmp1, tmp2;
         vector3* targett = (vector3*) malloc(Nf * sizeof(vector3));
@@ -620,45 +595,25 @@ void H2_3D_Compute<T>::NearFieldInteractions(vector3 *target, vector3 *source,
         // Compute Sf, the mapping function for the target points
         FMMTree->ComputeSn(targett,Tkz,n,Nf,Sf, use_chebyshev);
         
-<<<<<<< HEAD
-        // Compute the values at the target points
-        for (i=0;i<Nf;i++) {
-            // Due to far target interactions
-            sum = 0;
-            l = 0;
-            for (l1=0;l1<n;l1++) {
-                tmp1 = Sf[l1*Nf+i].x;
-                for (l2=0;l2<n;l2++) {
-                    tmp2 = tmp1*Sf[l2*Nf+i].y;
-                    for (l3=0;l3<n;l3++) {
-                        sum += F[l]*tmp2*Sf[l3*Nf+i].z;
-                        l += 1;
-=======
         // Compute the values at the field points
-        for (int col=0; col<this->m; col++) {
+        for (int col=0; col<this->nCols; col++) {
 
             for (i=0;i<Nf;i++) {
                 // Due to far field interactions
-                    l = 0;
-                    sum = 0;
-                    for (l1=0;l1<n;l1++) {
-                        tmp1 = Sf[l1*Nf+i].x;
-                        for (l2=0;l2<n;l2++) {
-                            tmp2 = tmp1*Sf[l2*Nf+i].y;
-                            for (l3=0;l3<n;l3++) {
-                                sum += F[col*n3+l]*tmp2*Sf[l3*Nf+i].z;
-                                l += 1;
-                            }
+                l = 0;
+                sum = 0;
+                for (l1=0;l1<n;l1++) {
+                    tmp1 = Sf[l1*Nf+i].x;
+                    for (l2=0;l2<n;l2++) {
+                        tmp2 = tmp1*Sf[l2*Nf+i].y;
+                        for (l3=0;l3<n;l3++) {
+                            sum += F[col*n3+l]*tmp2*Sf[l3*Nf+i].z;
+                            l += 1;
                         }
->>>>>>> 612597c... fix bug on applying to multiple vectors
                     }
+                }
                 A->nodePhi[col*Nf+i] += sum;
             }
-<<<<<<< HEAD
-            for (int l = 0; l < this->nCols; l++)
-                A->nodePhi[l*Nf+i] += sum;
-=======
->>>>>>> 612597c... fix bug on applying to multiple vectors
         }
     }
     
@@ -818,7 +773,7 @@ void H2_3D_Compute<T>::Local2Local(int n, double *r, double *F, double *Fchild, 
 	int n2 = n*n;                       // n2 = n^2
 	int n3 = n*n*n;                     // n3 = n^3
 	
-	double Fx[n3*this->m], Fy[n3*this->m];
+	double Fx[n3*this->nCols], Fy[n3*this->nCols];
     
     
     // Recover the index of the child box
@@ -830,18 +785,13 @@ void H2_3D_Compute<T>::Local2Local(int n, double *r, double *F, double *Fchild, 
     if (  r[2] > 0)
         idx[2] = 1;
     
-<<<<<<< HEAD
-	// Interpolate the parent target along the x-component
-    l = 0;
-=======
 	// Interpolate the parent field along the x-component
->>>>>>> 612597c... fix bug on applying to multiple vectors
 	if (idx[0] == 0)
 	    wstart = 0;
 	else
 	    wstart = n2;
     
-    for (int col=0; col<this->m; col++) {
+    for (int col=0; col<this->nCols; col++) {
         l = 0;
         for (l1=0;l1<n;l1++) {
     		count2 = wstart + l1;
@@ -855,18 +805,14 @@ void H2_3D_Compute<T>::Local2Local(int n, double *r, double *F, double *Fchild, 
         }
     }
     
-<<<<<<< HEAD
-    // Interpolate the parent target along the y-component
-    l = 0;
-=======
+
     // Interpolate the parent field along the y-component
->>>>>>> 612597c... fix bug on applying to multiple vectors
     if (idx[1] == 0)
         wstart = 0;
     else
         wstart = n2;
 
-    for (int col=0; col<this->m; col++) {
+    for (int col=0; col<this->nCols; col++) {
         l = 0;
         for (l1=0;l1<n;l1++) {
             for (l2=0;l2<n;l2++) {
@@ -879,20 +825,15 @@ void H2_3D_Compute<T>::Local2Local(int n, double *r, double *F, double *Fchild, 
         }
     }
     
-<<<<<<< HEAD
-    /* Interpolate the parent target along the z-component and add
-     to child target */
-    l = 0;
-=======
+
     /* Interpolate the parent field along the z-component and add
      to child field */
->>>>>>> 612597c... fix bug on applying to multiple vectors
     if (idx[2] == 0)
         wstart = 0;
     else
         wstart = n2;
 
-    for (int col=0; col<this->m; col++) {
+    for (int col=0; col<this->nCols; col++) {
         l = 0;
         for (l1=0;l1<n2;l1++) {
             count1 = l1*n;
@@ -940,13 +881,13 @@ void H2_3D_Compute<T>::Moment2Local(int n, double *R, double *cell_mpCoeff, doub
      
   if (use_chebyshev) {
     count = ninteract*cutoff2;
-    dgemm_(&trans, &trans, &cutoff_f, &this->m, &cutoff_s,&alpha,E+count,&cutoff_f,cell_mpCoeff,&cutoff_s,&beta,FFCoeff,&cutoff_f); // 3b  Ecell is the kernel
+    dgemm_(&trans, &trans, &cutoff_f, &this->nCols, &cutoff_s,&alpha,E+count,&cutoff_f,cell_mpCoeff,&cutoff_s,&beta,FFCoeff,&cutoff_f); // 3b  Ecell is the kernel
           
   } else {
     // entry-wise product of cell_mpCoeff
     int N = (int)round(pow(2*n-1, 3));
     count = ninteract*(2*n-1)*(2*n-1)*(2*n-1);
-    for (int col=0; col<this->m; col++)
+    for (int col=0; col<this->nCols; col++)
         FrequencyProduct(N, E+count, &cell_mpCoeff[col*N], &FFCoeff[col*N]);
      
   }
@@ -993,7 +934,7 @@ void H2_3D_Compute<T>::Moment2Moment(int n, double *r, double *Schild, double *S
 	int n2 = n*n;                       // n2 = n^2
 	int n3 = n*n*n;                     // n3 = n^3
 		
-	double Sy[n3*this->m], Sz[n3*this->m];
+	double Sy[n3*this->nCols], Sz[n3*this->nCols];
     
     
     // Recover the index of the child box
@@ -1011,7 +952,7 @@ void H2_3D_Compute<T>::Moment2Moment(int n, double *r, double *Schild, double *S
     else
 	    wstart =  n2;
     
-    for (int col=0; col < this->m; col++) {
+    for (int col=0; col < this->nCols; col++) {
         l = 0;
         for (l1=0;l1<n2;l1++) {
     	    count1 = l1*n;
@@ -1029,7 +970,7 @@ void H2_3D_Compute<T>::Moment2Moment(int n, double *r, double *Schild, double *S
     else
         wstart =  n2;
     
-    for (int col=0; col < this->m; col++) {
+    for (int col=0; col < this->nCols; col++) {
         l = 0;  
         for (l1=0;l1<n;l1++) {
             for (l2=0;l2<n;l2++) {
@@ -1049,7 +990,7 @@ void H2_3D_Compute<T>::Moment2Moment(int n, double *r, double *Schild, double *S
     else
         wstart =  n2;
     
-    for (int col=0; col < this->m; col++) {
+    for (int col=0; col < this->nCols; col++) {
         l = 0;
         for (l1=0;l1<n;l1++) {
             count2 = wstart + l1*n;
@@ -1160,11 +1101,8 @@ void H2_3D_Compute<T>::DistributeFieldPoints(nodeT **A, vector3 *target, int *ta
 	int i, j, k, m, z;
 	int Nf = (*A)->Nf;
 	vector3 point, center;
-<<<<<<< HEAD
-	int *targetcell[8], *F, *S;
-=======
-	int *fieldcell[8];
->>>>>>> 612597c... fix bug on applying to multiple vectors
+
+	int *targetcell[8];
 	for (z = 0; z < 8; z++)
 		targetcell[z] = (int *)malloc(Nf * sizeof(int));
 	
@@ -1224,19 +1162,10 @@ void H2_3D_Compute<T>::DistributeFieldPoints(nodeT **A, vector3 *target, int *ta
 		Nf = (*A)->Nf;
 		(*A)->targetlist = (int *)malloc(Nf*sizeof(int));
         (*A)->sourcelist = (int *)malloc(Nf*sizeof(int));
-<<<<<<< HEAD
         (*A)->nodePhi = (double*)calloc(Nf*this->nCols,sizeof(double)); 
-		F = (*A)->targetlist;
-        S = (*A)->sourcelist;
 		for (i=0;i<Nf;i++) {
-			F[i] = targetlist[i];
-            S[i] = targetlist[i];
-=======
-        (*A)->nodePhi = (double*)calloc(Nf*this->m,sizeof(double)); 
-		for (i=0;i<Nf;i++) {
-			(*A)->fieldlist[i] = fieldlist[i];
-            (*A)->sourcelist[i] = fieldlist[i];
->>>>>>> 612597c... fix bug on applying to multiple vectors
+			(*A)->targetlist[i] = targetlist[i];
+            (*A)->sourcelist[i] = targetlist[i];
         }
 	}
 	for (z = 0; z < 8; z++) {
