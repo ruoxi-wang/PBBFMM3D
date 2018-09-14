@@ -35,12 +35,12 @@ from scipy.spatial import distance_matrix
 #npts = np.array([10,22,46,100,171]) # 1,000, 9,261, 97,336, 1000,000, 5,000,000
 
 
-def check_accuracy(myTree, num_rows, nCols, Ns, Nf, field, source, q, stress):
+def check_accuracy(myTree, num_rows, nCols, Ns, Nf, target, source, q, stress):
     stress_exact = [0] * num_rows * nCols;
     for k in range(nCols):
         for i in range(num_rows):
             for j in range(Ns): 
-                val = myTree.EvaluateKernel(field[i], source[j]);
+                val = myTree.EvaluateKernel(target[i], source[j]);
                 if math.isnan(val) or math.isinf(val):
                     val = 0
                 stress_exact[k*num_rows+i] += val * q[k*Nf+j];
@@ -54,13 +54,13 @@ def check_accuracy(myTree, num_rows, nCols, Ns, Nf, field, source, q, stress):
 
 
 npts = np.array([10000, 80000])
-levels = [3,4]
+tree_levels = [3,4]
 
-nCols = 1 # number of eigenvalues
-nOverSample =  0 # oversample for randomized method
+nCols = 100 # number of eigenvalues
+nOverSample =  20 # oversample for randomized method
 nTotalCols = nCols + nOverSample
 # set FMM parameters
-L, nChebNode, eps, use_chebyshev = 1, 4, 1e-5, 1
+L, interpolation_order, eps, use_chebyshev = 1, 4, 1e-5, 1
 print("********* Onepass Randomized method starts *********\n")
 print("- computes %d largest eigenvalues of a covariance matrix with oversample %d" % (nCols,nOverSample))
 
@@ -68,20 +68,20 @@ random.seed(1)
 
 for i, Ns  in enumerate(npts):
     data = np.random.random([Ns, 3])
-    level = levels[i]
+    tree_level = tree_levels[i]
     Nf = Ns
     tStart = timeit.default_timer()
     tBegin = tStart 
 
-    print("(1) define field and source")    
+    print("(1) define target and source")    
 
 
-    print("L                    : %3.3f"%L)
-    print("n (# chebyshev)      : %d"%nChebNode)
-    print("Ns                   : %d"%Ns)
-    print("nCols(# of cols in q): %d"% nTotalCols)
-    print("level                : %d"%level)
-    print("eps                  : %3.3e"%eps)
+    print("L                            : %3.3f"%L)
+    print("interpolation order          : %d"%interpolation_order)
+    print("Ns                           : %d"%Ns)
+    print("nTotalCols(#cols in weights) : %d"% nTotalCols)
+    print("tree tree_level              : %d"%tree_level)
+    print("eps                          : %3.3e"%eps)
     print("\n")
 
 
@@ -109,7 +109,7 @@ for i, Ns  in enumerate(npts):
     tStart = timeit.default_timer()
 
 
-    myTree = myKernel(L, level, nChebNode, eps, use_chebyshev)
+    myTree = myKernel(L, tree_level, interpolation_order, eps, use_chebyshev)
     myTree.buildFMMTree()
 
     Compute(myTree, target_c, source_c, weight_c, nTotalCols, output_c)
@@ -133,7 +133,7 @@ for i, Ns  in enumerate(npts):
 
     tStart = timeit.default_timer()
 
-    myTree = myKernel(L, level, nChebNode, eps, use_chebyshev)
+    myTree = myKernel(L, tree_level, interpolation_order, eps, use_chebyshev)
     myTree.buildFMMTree()
     Compute(myTree, target_c, source_c, weight_c, nTotalCols, output_c)
     t_fmm = t_fmm + timeit.default_timer() - tStart
