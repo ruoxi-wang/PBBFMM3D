@@ -124,8 +124,10 @@ bool H2_3D_Tree::PrecomputeAvailable( char *Kmat, char *Umat, char *Vmat,
   if (fK!=NULL) fclose(fK);
   if (fU!=NULL) fclose(fU);
   if (fV!=NULL) fclose(fV);
-  if (avail) printf("Precompute files exist.\n");
-  else printf("Precompute files do NOT exist.\n");
+  if (avail)
+    cout <<"Precompute files exist.\n";
+  else
+    cout<<"Precompute files do NOT exist.\n";
   return avail;
 }
 
