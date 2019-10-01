@@ -16,7 +16,7 @@
  * the result in output.
  */
 template<typename T>
-void DirectCalc3D(T* FMMtree, std::vector<vector3>& target, std::vector<vector3>& source, std::vector<double>& weight, int nCols,
+void DirectCalc3D(T* FMMtree, const std::vector<vector3>& target, const std::vector<vector3>& source, std::vector<double>& weight, int nCols,
                   std::vector<double>& output_exact, int num_rows) {
 
     int Ns = source.size();

@@ -1,7 +1,7 @@
 CC = g++
 LD = g++
 
-FFTW_ROOT = /usr/local/
+FFTW_ROOT = /opt/apps/intel18/impi18_0/fftw3/3.3.8
 FFTW_LIB = $(FFTW_ROOT)/lib
 FFTW_INCLUDE = $(FFTW_ROOT)/include
 
@@ -35,6 +35,10 @@ EXECUTABLEC=  ./exec/get_input_through_routine_mykernel
 EXECUTABLED=  ./exec/binary_file_mykernel
 EXECUTABLEHT=  ./exec/3d_exp_cov
 
+binary_file_standard_kernel: $(SOURCES) $(SOURCEB) $(EXECUTABLEB)
+$(EXECUTABLEB): $(OBJECTB)
+	$(CC)  $(OBJECTB) $(LDPATH) $(LDFLAGS)  -o $@
+
 tomography: $(SOURCES) $(SOURCEHT) $(EXECUTABLEHT) $(EXECUTABLEHT)
 $(EXECUTABLEHT): $(OBJECTHT)
 	$(CC)  $(OBJECTHT) $(LDPATH) $(LDFLAGS)  -o $@
@@ -42,10 +46,6 @@ $(EXECUTABLEHT): $(OBJECTHT)
 get_input_through_routine_standard_kernel: $(SOURCES) $(SOURCEA) $(EXECUTABLEA)
 $(EXECUTABLEA): $(OBJECTA)
 	$(CC) $(OBJECTA) $(LDPATH) $(LDFLAGS)  -o $@
-
-binary_file_standard_kernel: $(SOURCES) $(SOURCEB) $(EXECUTABLEB)
-$(EXECUTABLEB): $(OBJECTB)
-	$(CC)  $(OBJECTB) $(LDPATH) $(LDFLAGS)  -o $@
 
 get_input_through_routine_mykernel: $(SOURCES) $(SOURCEC) $(EXECUTABLEC)
 $(EXECUTABLEC): $(OBJECTC)

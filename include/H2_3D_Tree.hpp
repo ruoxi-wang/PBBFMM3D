@@ -91,7 +91,7 @@ public:
         
     void GetPosition(int interpolation_order, int idx, double *targetpos, double *sourcepos, double *nodepos);
     
-    virtual double EvaluateKernel(vector3& targetpos, vector3& sourcepos) = 0;
+    virtual double EvaluateKernel(const vector3& targetpos, const vector3& sourcepos) = 0;
 
     virtual void SetKernelProperty(){};
     void get_Charge(nodeT*& node, double* q, int N, int m);

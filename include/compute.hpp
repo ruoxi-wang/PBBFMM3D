@@ -17,10 +17,12 @@
 template <typename T>
 class H2_3D_Compute {
 public:
-    H2_3D_Compute(T& FMMTree, std::vector<vector3>& target, std::vector<vector3>&source, std::vector<double>& charge, int nCols, std::vector<double>& output); 
+    H2_3D_Compute(T& FMMTree, const std::vector<vector3>& target, const std::vector<vector3>&source, std::vector<double>& charge, int nCols, std::vector<double>& output); 
     T* FMMTree;
     vector3 * target;
     vector3 * source;
+    std::vector<vector3> mtarget;
+    std::vector<vector3> msource;
     int Ns;
     int Nf;
     double* charge;
@@ -63,8 +65,11 @@ public:
 
 
 template <typename T>
-H2_3D_Compute<T>::H2_3D_Compute(T &FMMTree, std::vector<vector3>& target, std::vector<vector3>& source, std::vector<double>& charge, int nCols, std::vector<double>&output) {
+H2_3D_Compute<T>::H2_3D_Compute(T &FMMTree, const std::vector<vector3>& target, const std::vector<vector3>& source, std::vector<double>& charge, int nCols, std::vector<double>&output) {
 
+    /* 
+     * Chao: 10/1/2019
+     * commented out for usage in Eigen matrix-free solvers
     if (FMMTree.computed == true) {
         if (FMMTree.tree != NULL) {
             FMMTree.FreeNode(FMMTree.tree);
@@ -78,6 +83,7 @@ H2_3D_Compute<T>::H2_3D_Compute(T &FMMTree, std::vector<vector3>& target, std::v
         FMMTree.BuildFMMHierarchy(&FMMTree.tree,FMMTree.tree_level,FMMTree.interpolation_order,&FMMTree.cutoff,FMMTree.dof, 0, FMMTree.indexToLeafPointer, FMMTree.cellPointers);
 
     }
+    */
     this->FMMTree   =   &FMMTree;
     this->Ns = source.size();
     this->Nf = target.size();
@@ -103,23 +109,25 @@ H2_3D_Compute<T>::H2_3D_Compute(T &FMMTree, std::vector<vector3>& target, std::v
     ctr.y = 0.5 * (xmin.y + xmax.y);
     ctr.z = 0.5 * (xmin.z + xmax.z);
 
+    mtarget = target;
     #pragma omp parallel for
     for (int i = 0; i < Nf; ++i) {
-        target[i].x -= ctr.x;
-        target[i].y -= ctr.y;
-        target[i].z -= ctr.z;
+        mtarget[i].x -= ctr.x;
+        mtarget[i].y -= ctr.y;
+        mtarget[i].z -= ctr.z;
     }
 
+    msource = source;
     #pragma omp parallel for
     for (int i = 0; i < Ns; ++i) {
-        source[i].x -=  ctr.x;
-        source[i].y -=  ctr.y;
-        source[i].z -=  ctr.z;
+        msource[i].x -=  ctr.x;
+        msource[i].y -=  ctr.y;
+        msource[i].z -=  ctr.z;
     }
 
 
-    this-> target    =   &target[0];
-    this-> source   =   &source[0];
+    this-> target   =   &mtarget[0];
+    this-> source   =   &msource[0];
     this-> Ns       =   Ns;
     this-> Nf       =   Nf;
     this->charge    =   &charge[0];
@@ -128,8 +136,8 @@ H2_3D_Compute<T>::H2_3D_Compute(T &FMMTree, std::vector<vector3>& target, std::v
     this->indexToLeafPointer = FMMTree.indexToLeafPointer;
     this->cellPointers = FMMTree.cellPointers;
 
-    FMMDistribute(&FMMTree.tree, &target[0], &source[0],Nf,Ns, FMMTree.tree_level);
-    FMMCompute(&FMMTree.tree,&target[0], &source[0],&charge[0],FMMTree.K,FMMTree.U,FMMTree.VT,FMMTree.Tkz,FMMTree.Ktable,FMMTree.Kweights,FMMTree.Cweights,
+    FMMDistribute(&FMMTree.tree, this->target, this->source,Nf,Ns, FMMTree.tree_level);
+    FMMCompute(&FMMTree.tree,this->target, this->source,&charge[0],FMMTree.K,FMMTree.U,FMMTree.VT,FMMTree.Tkz,FMMTree.Ktable,FMMTree.Kweights,FMMTree.Cweights,
                    FMMTree.homogen,&FMMTree.cutoff,FMMTree.interpolation_order,FMMTree.dof, &output[0], FMMTree.use_chebyshev);
 
     FMMTree.computed = true;
@@ -1178,6 +1186,9 @@ void H2_3D_Compute<T>::DistributeFieldPoints(nodeT **A, vector3 *target, int *ta
 
 template <typename T>
 H2_3D_Compute<T>::~H2_3D_Compute() {
+    /*
+     * Chao: 10/1/2019
+     * shouldn't be here
     if (FMMTree->tree != NULL) {
         FMMTree->FreeNode(FMMTree->tree);
         FMMTree->tree = NULL;
@@ -1205,7 +1216,7 @@ H2_3D_Compute<T>::~H2_3D_Compute() {
     if (FMMTree->VT!= NULL) {
         free(FMMTree->VT);
         FMMTree->VT = NULL;
-    }
+    }*/
 }
 
 

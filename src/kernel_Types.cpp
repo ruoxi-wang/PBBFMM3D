@@ -12,7 +12,7 @@ void kernel_Laplacian::SetKernelProperty( ) {
     dof->s = 1;
 }
 
-double kernel_Laplacian::EvaluateKernel(vector3& targetpos, vector3& sourcepos){
+double kernel_Laplacian::EvaluateKernel(const vector3& targetpos, const vector3& sourcepos){
     vector3 diff;
 	double rinv;
 

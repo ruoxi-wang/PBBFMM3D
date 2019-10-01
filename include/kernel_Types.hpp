@@ -11,7 +11,7 @@ class kernel_Laplacian: public H2_3D_Tree {
 public:
     kernel_Laplacian(double L, int tree_level, int interpolation_order, double epsilon, int use_chebyshev):H2_3D_Tree(L,tree_level,interpolation_order, epsilon, use_chebyshev){};
      void SetKernelProperty();
-     double EvaluateKernel(vector3& targetpos, vector3& sourcepos);
+     double EvaluateKernel(const vector3& targetpos, const vector3& sourcepos);
 };
 
 
