@@ -2,7 +2,7 @@
 
 ### 1. INTRODUCTION
 
-PBBFMM3D is a parallel open source package of the <a href="http://www.sciencedirect.com/science/article/pii/S0021999109004665">Black-box Fast Multipole Method</a> in 3 dimensions.   
+PBBFMM3D is a parallel open source package of the Black-box Fast Multipole Method in 3 dimensions.   
 The Black-box Fast Multipole Method is an O(N) fast multipole method, which is a technique to calculate sums of the form  
 
 ![](http://latex.codecogs.com/gif.latex?f%28x_i%29%20%3D%20%5Cdisplaystyle%20%5Csum_%7Bj%3D1%7D%5EN%20K%28x_i%2Cy_j%29%20%5Csigma_j%2C%20%5C%2C%5C%2C%5C%2C%20%5Cforall%20i%20%5Cin%5C%7B1%2C2%2C%5Cldots%2CN%5C%7D)
@@ -19,9 +19,11 @@ PBBFMM3D
 *  pre-computes and compresses far-field translation operators.
 *  applies to multiple sets of weights in one pass.
 
-Please cite the following paper if you use this code:
+Please cite the following papers if you use this code:
 
-Fong, William, and Eric Darve. "The black-box fast multipole methodshod." Journal of Computational Physics 228, no. 23 (2009): 8712-8725. You can see details <a href="http://www.sciencedirect.com/science/article/pii/S0021999109004665">here</a>.
+William Wang and Eric Darve. "The black-box fast multipole method." Journal of Computational Physics 228, no. 23 (2009): 8712-8725. <a href="http://www.sciencedirect.com/science/article/pii/S0021999109004665">link</a>
+
+Ruoxi Wang, Chao Chen, Jonghyun Lee and Eric Darve. "PBBFMM3D: a parallel black-box method for kernel matrix-vector multiplication". <a href="https://arxiv.org/abs/1903.02153">arXive</a>
 
 ### 2. DIRECTORIES AND FILES
 
