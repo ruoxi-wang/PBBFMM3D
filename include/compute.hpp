@@ -602,7 +602,8 @@ void H2_3D_Compute<T>::NearFieldInteractions(vector3 *target, vector3 *source,
         
         // Compute Sf, the mapping function for the target points
         FMMTree->ComputeSn(targett,Tkz,n,Nf,Sf, use_chebyshev);
-        
+        free(targett);
+        targett = NULL;
         // Compute the values at the field points
         for (int col=0; col<this->nCols; col++) {
 
@@ -623,6 +624,8 @@ void H2_3D_Compute<T>::NearFieldInteractions(vector3 *target, vector3 *source,
                 A->nodePhi[col*Nf+i] += sum;
             }
         }
+        free(Sf);
+        Sf = NULL;
     }
     
     #pragma omp parallel for private(leafAIndex)
