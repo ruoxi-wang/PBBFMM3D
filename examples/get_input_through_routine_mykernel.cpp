@@ -11,7 +11,7 @@
 void SetSources(std::vector<vector3>& target, int Nf, std::vector<vector3>& source, int Ns, std::vector<double>& weight, int nCols,
                 double L) {
 	
-	int l, i, j, k=0;
+	int l, i, k=0;
 	
     // Distributes the sources randomly uniformly in a cubic cell
     for (l=0;l<nCols;l++) {
@@ -44,7 +44,7 @@ public:
         symmetry = 1;
         kernelType = "myKernel";
     }
-    virtual double EvaluateKernel(vector3& targetpos, vector3& sourcepos) {
+    virtual double EvaluateKernel(const vector3& targetpos, const vector3& sourcepos) {
         vector3 diff;        
         // Compute 1/r
         diff.x = sourcepos.x - targetpos.x;
@@ -61,14 +61,14 @@ int main(int argc, char *argv[]) {
     /*              Initializing the problem                  */
     /*                                                        */
     /**********************************************************/
-    double L;                   // Length of simulation cell (assumed to be a cube)
-    int interpolation_order;    // Number of interpolation nodes per dimension
-    int Ns;                     // Number of sources in simulation cell
-    int Nf;                     // Number of targets in simulation cell
-    int nCols;
-    int tree_level;
-    double eps;
-    int use_chebyshev;
+    double L = 1.0;                   // Length of simulation cell (assumed to be a cube)
+    int interpolation_order = 3;    // Number of interpolation nodes per dimension
+    int Ns = 10000;                     // Number of sources in simulation cell
+    int Nf = 10000;                     // Number of targets in simulation cell
+    int nCols = 1;
+    int tree_level = 3;
+    double eps = 1e-3;
+    int use_chebyshev = 1;
 
       // parse input arguments
     if (argc > 1) {
@@ -139,6 +139,7 @@ int main(int argc, char *argv[]) {
     cout << "Pre-computation time: " << tPre << endl;
     cout << "FMM computing time:   " << tFMM  << endl;
     cout << "FMM total time:   " << tFMM+tPre  << endl;
+    cout << "Exact computing time:   " << tExact  << endl;
    
     return 0;
 }

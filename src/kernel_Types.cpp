@@ -39,7 +39,7 @@ void kernel_OneOverR4::SetKernelProperty( ) {
     dof->s = 9;
 }
 
-double kernel_OneOverR4::EvaluateKernel(vector3& targetpos, vector3& sourcepos){
+double kernel_OneOverR4::EvaluateKernel(const vector3& targetpos, const vector3& sourcepos){
     vector3 diff;
 	double rinv;
 	
@@ -61,7 +61,7 @@ void kernel_Gaussian::SetKernelProperty( ) {
     dof->s = 1;
 }
 
-double kernel_Gaussian::EvaluateKernel(vector3& targetpos, vector3& sourcepos){
+double kernel_Gaussian::EvaluateKernel(const vector3& targetpos, const vector3& sourcepos){
     vector3 diff;
 	
     // Compute r
@@ -82,7 +82,7 @@ void kernel_Logarithm::SetKernelProperty( ) {
     dof->s = 1;
 }
 
-double kernel_Logarithm::EvaluateKernel(vector3& targetpos, vector3& sourcepos){
+double kernel_Logarithm::EvaluateKernel(const vector3& targetpos, const vector3& sourcepos){
     vector3 diff;
 	
     diff.x = sourcepos.x - targetpos.x;
@@ -106,7 +106,7 @@ void kernel_OneOverR2::SetKernelProperty( ) {
     dof->s = 1;
 }
 
-double kernel_OneOverR2::EvaluateKernel(vector3& targetpos, vector3& sourcepos){
+double kernel_OneOverR2::EvaluateKernel(const vector3& targetpos, const vector3& sourcepos){
     vector3 diff;
 	double rinv;
 	
@@ -128,7 +128,7 @@ void kernel_Quadric::SetKernelProperty( ) {
     dof->s = 1;
 }
 
-double kernel_Quadric::EvaluateKernel(vector3& targetpos, vector3& sourcepos){
+double kernel_Quadric::EvaluateKernel(const vector3& targetpos, const vector3& sourcepos){
     vector3 diff;
 	diff.x = sourcepos.x - targetpos.x;
     diff.y = sourcepos.y - targetpos.y;
@@ -145,7 +145,7 @@ void kernel_InverseQuadric::SetKernelProperty( ) {
     dof->s = 1;
 }
 
-double kernel_InverseQuadric::EvaluateKernel(vector3& targetpos, vector3& sourcepos){
+double kernel_InverseQuadric::EvaluateKernel(const vector3& targetpos, const vector3& sourcepos){
     vector3 diff;
 	diff.x = sourcepos.x - targetpos.x;
     diff.y = sourcepos.y - targetpos.y;
@@ -162,7 +162,7 @@ void kernel_ThinPlateSpline::SetKernelProperty( ) {
     dof->s = 1;
 }
 
-double kernel_ThinPlateSpline::EvaluateKernel(vector3& targetpos, vector3& sourcepos){
+double kernel_ThinPlateSpline::EvaluateKernel(const vector3& targetpos, const vector3& sourcepos){
     vector3 diff;
 	diff.x = sourcepos.x - targetpos.x;
     diff.y = sourcepos.y - targetpos.y;

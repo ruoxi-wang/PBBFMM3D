@@ -237,11 +237,12 @@ void H2_3D_Compute<T>::UpwardPass(nodeT **A, vector3 *source, double *weight, do
                 int  idx[3];
                 double r[3];
                 idx[2] = i%2, idx[1] = i/2%2, idx[0] = i/4%2;
-                for (int l=0; l<3; l++)
+                for (int l=0; l<3; l++) {
                     if (idx[l] == 0)
                         r[l] = -1;
                     else
                         r[l] =  1;
+                }
                 
 		        double SS[n3*this->nCols];
                 Moment2Moment(n, r, Schild, SS, dof, Cweights);
@@ -475,7 +476,6 @@ void H2_3D_Compute<T>::FarFieldInteractions(double *E, int *Ktable, double *U,
          
       if (use_chebyshev) {
 
-        int incr     =  1;
         char trans   = 'n';
         double alpha =  0;
         double F_m2l[n*n*n*this->nCols];
@@ -578,7 +578,7 @@ void H2_3D_Compute<T>::NearFieldInteractions(vector3 *target, vector3 *source,
         nodeT* A = indexToLeafPointer[leafAIndex];
         if (A->Nf <= 0 || A->Ns <= 0) {continue;}
 
-        int Nf = A->Nf, i, m;
+        int Nf = A->Nf, i;
         int l, l1, l2, l3;
         double sum;        
         double *F = A->targetval;
@@ -789,12 +789,12 @@ void H2_3D_Compute<T>::Local2Local(int n, double *r, double *F, double *Fchild, 
     
     // Recover the index of the child box
     int idx[3] = {0};
-    if (  r[0] > 0)
-        idx[0] = 1;
-    if (  r[1] > 0)
-        idx[1] = 1;
-    if (  r[2] > 0)
-        idx[2] = 1;
+    if (  r[0] > 0) {
+        idx[0] = 1;}
+    if (  r[1] > 0) {
+        idx[1] = 1;}
+    if (  r[2] > 0) {
+        idx[2] = 1;}
     
 	// Interpolate the parent field along the x-component
 	if (idx[0] == 0)
@@ -868,7 +868,6 @@ void H2_3D_Compute<T>::Moment2Local(int n, double *R, double *cell_mpCoeff, doub
   int cutoff2  = cutoff_f * cutoff_s;
 
 
-  int incr = 1;
   double alpha = 1, beta = 0;
   char trans = 'n';
     

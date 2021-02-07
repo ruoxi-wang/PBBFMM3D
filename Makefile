@@ -28,12 +28,13 @@ OBJECTC=$(SOURCES:.cpp=.o) $(SOURCEC:.cpp=.o)
 OBJECTD=$(SOURCES:.cpp=.o) $(SOURCED:.cpp=.o)
 OBJECTHT=$(SOURCES:.cpp=.o) $(SOURCEHT:.cpp=.o)
 
-
 EXECUTABLEA= ./exec/get_input_through_routine_standard_kernel
 EXECUTABLEB=  ./exec/binary_file_standard_kernel
 EXECUTABLEC=  ./exec/get_input_through_routine_mykernel
 EXECUTABLED=  ./exec/binary_file_mykernel
 EXECUTABLEHT=  ./exec/3d_exp_cov
+
+defult: $(EXECUTABLEC)
 
 binary_file_standard_kernel: $(SOURCES) $(SOURCEB) $(EXECUTABLEB)
 $(EXECUTABLEB): $(OBJECTB)
