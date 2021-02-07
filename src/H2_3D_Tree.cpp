@@ -255,7 +255,6 @@ void H2_3D_Tree::ComputeKernelCheb(double *Kweights, int interpolation_order,dou
     vector3 vtmp;
     double pi = M_PI;
 	
-    int interpolation_order3 = interpolation_order*interpolation_order*interpolation_order;            // n3 = n^3
     int dofn3_s = n3;
     int dofn3_f = n3;
     size_t dof2n6 = dofn3_s * dofn3_f; // Total size
@@ -723,7 +722,6 @@ void H2_3D_Tree::ComputeWeights(double *Tkz, int *Ktable, double *Kweights,
 	vector3 *targett, *Sn;
 	nodes = (double *)malloc(interpolation_order * sizeof(double));
 	vec   = (double *)malloc(interpolation_order * sizeof(double));
-	int interpolation_order3 = interpolation_order*interpolation_order*interpolation_order;                     // n3 = n^3
 	int Nc = 2*n3;                      // Number of child Chebyshev nodes
 	targett = (vector3 *)malloc(Nc * sizeof(vector3));
     // Chebyshev-transformed coordinates
@@ -1062,26 +1060,26 @@ void H2_3D_Tree::FreeNode(nodeT *A) {
 		}
     }
 	
-	if (A->targetval != NULL)
-        free(A->targetval), A->targetval=NULL;
-	if (A->sourceval != NULL)
-        free(A->sourceval), A->sourceval=NULL;
-	if (A->proxysval != NULL)
-        free(A->proxysval), A->proxysval=NULL;
-	if (A->sourcefre != NULL)
-	    free(A->sourcefre), A->sourcefre=NULL;
-	if (A->targetlist != NULL)
-        free(A->targetlist), A->targetlist=NULL;
-	if (A->sourcelist != NULL)
-        free(A->sourcelist), A->sourcelist=NULL;
-    if (A->location != NULL)
-        free(A->location), A->location=NULL;
-    if (A->charge != NULL)
-        free(A->charge), A->charge=NULL;
-    if (A->targetlist != NULL)
-        free(A->targetlist), A->targetlist=NULL;
-    if (A->nodePhi != NULL)
-        free(A->nodePhi), A->nodePhi=NULL;
+	if (A->targetval != NULL) {
+        free(A->targetval), A->targetval=NULL;}
+	if (A->sourceval != NULL) {
+        free(A->sourceval), A->sourceval=NULL;}
+	if (A->proxysval != NULL) {
+        free(A->proxysval), A->proxysval=NULL;}
+	if (A->sourcefre != NULL) {
+	    free(A->sourcefre), A->sourcefre=NULL;}
+	if (A->targetlist != NULL) {
+        free(A->targetlist), A->targetlist=NULL;}
+	if (A->sourcelist != NULL) {
+        free(A->sourcelist), A->sourcelist=NULL;}
+    if (A->location != NULL) {
+        free(A->location), A->location=NULL;}
+    if (A->charge != NULL) {
+        free(A->charge), A->charge=NULL;}
+    if (A->targetlist != NULL) {
+        free(A->targetlist), A->targetlist=NULL;}
+    if (A->nodePhi != NULL) {
+        free(A->nodePhi), A->nodePhi=NULL;}
 	free(A);
 }
 
