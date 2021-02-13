@@ -94,6 +94,7 @@ H2_3D_Compute<T>::H2_3D_Compute(T &FMMTree, const std::vector<vector3>& target, 
     xmax.x = -1e32; xmax.y = -1e32; xmax.z = -1e32;
 
    
+    #pragma omp parallel for
     for (int i = 0; i < Nf; ++i) {
         xmin.x = min(xmin.x, target[i].x);
         xmin.y = min(xmin.y, target[i].y);
@@ -136,7 +137,11 @@ H2_3D_Compute<T>::H2_3D_Compute(T &FMMTree, const std::vector<vector3>& target, 
     this->indexToLeafPointer = FMMTree.indexToLeafPointer;
     this->cellPointers = FMMTree.cellPointers;
 
+    double t0 = omp_get_wtime(); 
     FMMDistribute(&FMMTree.tree, this->target, this->source,Nf,Ns, FMMTree.tree_level);
+    double t1 = omp_get_wtime(); 
+    cout  << " FMM distribute = " << t1-t0 << endl;
+
     FMMCompute(&FMMTree.tree,this->target, this->source,&charge[0],FMMTree.K,FMMTree.U,FMMTree.VT,FMMTree.Tkz,FMMTree.Ktable,FMMTree.Kweights,FMMTree.Cweights,
                    FMMTree.homogen,&FMMTree.cutoff,FMMTree.interpolation_order,FMMTree.dof, &output[0], FMMTree.use_chebyshev);
 
@@ -162,18 +167,26 @@ void H2_3D_Compute<T>::FMMDistribute(nodeT **A, vector3 *target, vector3 *source
 	(*A)->Ns = Ns;
 	
     // Distribute all of the sources and target points to the appropriate cell
+    double t0 = omp_get_wtime(); 
 	DistributeFieldPoints(A,target,targetlist,tree_level); 
-
+    double t1 = omp_get_wtime(); 
+    double t_points = t1-t0;
 	
     // Construct the interaction list for the entire octree
 	(*A)->neighbors[0] = *A;
 
     (*A)->max_neighbor_Ns = max((*A)->max_neighbor_Ns, (*A)->Ns);
 	(*A)->ineigh = 1;
+    t0 = omp_get_wtime(); 
 	InteractionList(A,tree_level);  // build the interaction that need to be computed
+    t1 = omp_get_wtime(); 
+    double t_il = t1-t0;
     
 	free(targetlist);
     targetlist = NULL;
+    
+    cout  << " Distribute points = " << t_points
+      << " Interaction list = " << t_il << endl;
 }
 
 template <typename T>
@@ -1097,7 +1110,6 @@ void H2_3D_Compute<T>::InteractionList(nodeT **A, int levels) {
 		}
 	}
 }
-
 
 /*
  * Function: DistributeFieldPoints
