@@ -358,10 +358,10 @@ void H2_3D_Compute<T>::UpwardPass(nodeT **A, vector3 *source, double *weight, do
             p = fftw_plan_r2r_1d(padSize, &padx[col*padSize], &(*A)->sourcefre[col*padSize], FFTW_R2HC, FFTW_FLAG);
             fftw_execute(p);
         }
+        if (this->nCols>0) fftw_destroy_plan(p);
        
         x=NULL;
         fftw_free(padx), padx=NULL;
-        fftw_destroy_plan(p);
 
     } else {
         int n3    = n*n*n;
@@ -516,8 +516,7 @@ void H2_3D_Compute<T>::FarFieldInteractions(double *E, int *Ktable, double *U,
             fftw_execute(p);
 
         }
-
-        fftw_destroy_plan(p);
+        if (this->nCols>0) fftw_destroy_plan(p);
 
          
         fftw_free(productfre), productfre=NULL;

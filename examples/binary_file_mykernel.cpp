@@ -4,12 +4,12 @@
 class myKernel: public H2_3D_Tree {
 public:
     myKernel(double L, int tree_level, int interpolation_order, double epsilon,int use_chebyshev):H2_3D_Tree(L,tree_level,interpolation_order,epsilon,use_chebyshev){};
-    virtual void SetKernelProperty() {
+    void SetKernelProperty() {
         homogen = -1;
         symmetry = 1;
         kernelType = "myKernel";
     }
-    virtual double EvaluateKernel(vector3& targetpos, vector3& sourcepos) {
+    double EvaluateKernel(const vector3& targetpos, const vector3& sourcepos) {
         vector3 diff;        
         // Compute 1/r
         diff.x = sourcepos.x - targetpos.x;
