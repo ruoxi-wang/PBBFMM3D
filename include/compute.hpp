@@ -88,27 +88,27 @@ H2_3D_Compute<T>::H2_3D_Compute(T &FMMTree, const std::vector<vector3>& target, 
     this->Ns = source.size();
     this->Nf = target.size();
     // shift target and source pts s.t. they center around orign
-    vector3 xmin;
-    xmin.x = 1e32; xmin.y = 1e32; xmin.z = 1e32;
-    vector3 xmax;
-    xmax.x = -1e32; xmax.y = -1e32; xmax.z = -1e32;
+    //vector3 xmin;
+    double xmin_x = 1e32, xmin_y = 1e32, xmin_z = 1e32;
+    //vector3 xmax;
+    double xmax_x = -1e32, xmax_y = -1e32, xmax_z = -1e32;
 
    
-    #pragma omp parallel for
+    #pragma omp parallel for reduction(min:xmin_x, xmin_y, xmin_z) reduction(max:xmax_x, xmax_y, xmax_z)
     for (int i = 0; i < Nf; ++i) {
-        xmin.x = min(xmin.x, target[i].x);
-        xmin.y = min(xmin.y, target[i].y);
-        xmin.z = min(xmin.z, target[i].z);
+        xmin_x = min(xmin_x, target[i].x);
+        xmin_y = min(xmin_y, target[i].y);
+        xmin_z = min(xmin_z, target[i].z);
 
-        xmax.x = max(xmax.x, target[i].x);
-        xmax.y = max(xmax.y, target[i].y);
-        xmax.z = max(xmax.z, target[i].z);
+        xmax_x = max(xmax_x, target[i].x);
+        xmax_y = max(xmax_y, target[i].y);
+        xmax_z = max(xmax_z, target[i].z);
     }
 
     vector3 ctr;
-    ctr.x = 0.5 * (xmin.x + xmax.x);
-    ctr.y = 0.5 * (xmin.y + xmax.y);
-    ctr.z = 0.5 * (xmin.z + xmax.z);
+    ctr.x = 0.5 * (xmin_x + xmax_x);
+    ctr.y = 0.5 * (xmin_y + xmax_y);
+    ctr.z = 0.5 * (xmin_z + xmax_z);
 
     mtarget = target;
     #pragma omp parallel for
@@ -193,6 +193,8 @@ template <typename T>
 void H2_3D_Compute<T>::FMMCompute(nodeT **A, vector3 *target, vector3 *source, double *charge, double *K, double *U, double *VT, double *Tkz, int *Ktable, double *Kweights, double *Cweights, double homogen, doft *cutoff, int n, doft *dof, double *output, int use_chebyshev) {
 	double t0, t1;
     t0 = omp_get_wtime(); 
+#pragma omp parallel
+#pragma omp single
     UpwardPass(A,source,charge,Cweights,Tkz,VT,Kweights,cutoff,n,dof, homogen, 0, use_chebyshev);
     t1 = omp_get_wtime(); 
     double t_upward = t1 - t0;
@@ -238,9 +240,12 @@ void H2_3D_Compute<T>::UpwardPass(nodeT **A, vector3 *source, double *weight, do
         }
 		
         // Determine which children cells contain sources
-        #pragma omp parallel for private(i)
+        //#pragma omp parallel for private(i)
 		for (i=0;i<8;i++) {
 		    if ((*A)->leaves[i]->Ns != 0) {
+//#pragma omp task final (curTreeLevel > 2)
+#pragma omp task mergeable final (curTreeLevel > 3)
+          {
                 UpwardPass(&((*A)->leaves[i]),source,weight,Cweights,Tkz,VT,
 						   Kweights,cutoff,n,dof,homogen,curTreeLevel+1, use_chebyshev);
                 double *Schild;
@@ -270,8 +275,10 @@ void H2_3D_Compute<T>::UpwardPass(nodeT **A, vector3 *source, double *weight, do
                 
                 for (int l=0; l<n3*this->nCols; l++)
                     (*A)->sourceval[l] += SS[l];
+        }
             }
         }
+#pragma omp taskwait
         
 	}
     

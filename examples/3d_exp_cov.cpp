@@ -127,7 +127,7 @@ public:
         symmetry = 1;
         kernelType = "myKernel";
     }
-    virtual double EvaluateKernel(vector3& targetpos, vector3& sourcepos) {
+    virtual double EvaluateKernel(const vector3& targetpos, const vector3& sourcepos) {
         vector3 diff;        
         // Compute exp(-r)
         diff.x = sourcepos.x - targetpos.x;
@@ -169,8 +169,9 @@ int main(int argc, char *argv[]) {
 
 	//double err;
     std::vector<double> output(Nf*nCols);// Field array (BBFMM calculation)
-    for (int i = 0; i < Nf*nCols; i++)
+    for (int i = 0; i < Nf*nCols; i++) {
     	output[i] = 0; 				// TODO: check do we need to initialize
+    }
 	cout << "L                  		  : " << L << endl;
 	cout << "interpolation_order		  : " << interpolation_order << endl;
 	cout << "Ns (=Nf)           		  : " << Ns << endl;
@@ -227,6 +228,7 @@ int main(int argc, char *argv[]) {
 	cout << "Pre-computation time: " << tPre << endl;
     cout << "FMM computing time:   " << tFMM  << endl;
 	cout << "FMM total time:   "  << tPre+tFMM  << endl;
+  cout << "Exact computing time: "<< tExact <<endl;
     
     /*******            Clean Up        *******/
     
