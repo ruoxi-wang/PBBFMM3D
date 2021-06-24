@@ -23,7 +23,8 @@ Please cite the following papers if you use this code:
 
 William Wang and Eric Darve. "The black-box fast multipole method." Journal of Computational Physics 228, no. 23 (2009): 8712-8725. <a href="http://www.sciencedirect.com/science/article/pii/S0021999109004665">link</a>
 
-Ruoxi Wang, Chao Chen, Jonghyun Lee and Eric Darve. "PBBFMM3D: a parallel black-box method for kernel matrix-vector multiplication". <a href="https://arxiv.org/abs/1903.02153">arXiv</a>
+Ruoxi Wang, Chao Chen, Jonghyun Lee, Eric Darve. "PBBFMM3D: A parallel black-box algorithm for kernel matrix-vector multiplication."
+Journal of Parallel and Distributed Computing, Volume 154, 2021, Pages 64-73, ISSN 0743-7315,. <a href="https://arxiv.org/abs/1903.02153">arXiv</a>
 
 ### 2. DIRECTORIES AND FILES
 
