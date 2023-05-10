@@ -21,7 +21,7 @@ PBBFMM3D
 
 Please cite the following papers if you use this code:
 
-William Wang and Eric Darve. "The black-box fast multipole method." Journal of Computational Physics 228, no. 23 (2009): 8712-8725. <a href="http://www.sciencedirect.com/science/article/pii/S0021999109004665">link</a>
+William Fong and Eric Darve. "The black-box fast multipole method." Journal of Computational Physics 228, no. 23 (2009): 8712-8725. <a href="http://www.sciencedirect.com/science/article/pii/S0021999109004665">link</a>
 
 Ruoxi Wang, Chao Chen, Jonghyun Lee, Eric Darve. "PBBFMM3D: A parallel black-box algorithm for kernel matrix-vector multiplication."
 Journal of Parallel and Distributed Computing, Volume 154, 2021, Pages 64-73, ISSN 0743-7315,. <a href="https://arxiv.org/abs/1903.02153">arXiv</a>
@@ -352,7 +352,7 @@ The arguments `filenameField`, `filenameSource` and `filenameCharge` are binary 
 	
 		
 	
-####4.3 Writing into binary file  
+#### 4.3 Writing into binary file  
 	
 	void write_Into_Binary_File(const string& filename, double* outdata, int numOfElems);  
 This first argument is the filename for your output data. The second argument is a pointer to the output data, and the last argument is the number of elements in the array of your output data.  
@@ -453,3 +453,9 @@ To run other .cpp files:
    
    		make binary_file_standard_kernel
 
+	
+### 6. CONTACTS
+The best way to ask questions is to email both of us:
+	
+	Chao Chen (chenchao.nk@gmail.com)
+	Ruoxi Wang (ruoxi.rw@gmail.com)
