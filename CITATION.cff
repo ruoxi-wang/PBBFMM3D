@@ -1,0 +1,19 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+- family-names: "Wang"
+  given-names: "Ruoxi"
+- family-names: "Chen"
+  given-names: "Chao"
+  orcid: "https://orcid.org/0000-0002-5385-3651"
+- family-names: "Lee"
+  given-names: "Jonghyun"
+  orcid: "https://orcid.org/0000-0002-3646-2915"
+- family-names: "Darve"
+  given-names: "Eric"
+  orcid: "https://orcid.org/0000-0002-1938-3836"
+title: "PBBFMM3D"
+version: 1.0.0
+doi: 10.5281/zenodo.1234
+date-released: 2025-10-08
+url: "https://github.com/ruoxi-wang/PBBFMM3D"
